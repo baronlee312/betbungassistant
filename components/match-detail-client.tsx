@@ -5,6 +5,7 @@ import { useState, useSyncExternalStore } from "react";
 import LanguageSwitcher from "@/components/language-switcher";
 import MatchStats from "@/components/match-stats";
 import RecentFormColumn from "@/components/recent-form-column";
+import { getFlagEmoji } from "@/lib/flags";
 import {
   DEFAULT_VIEWER_TIME_ZONE,
   formatLocalMatchDate,
@@ -197,9 +198,9 @@ export default function MatchDetailClient({
               </p>
               <div className="mt-3 flex flex-wrap items-center gap-3">
                 <div className="flex items-center gap-2">
-                  {match.homeTeam.crestUrl && (
-                    <img src={match.homeTeam.crestUrl} alt="" className="h-10 w-10 object-contain" />
-                  )}
+                  <span className="text-4xl sm:text-5xl select-none" role="img" aria-label={match.homeTeam.name}>
+                    {getFlagEmoji(match.homeTeam.name)}
+                  </span>
                   <h1 className="text-3xl font-semibold text-slate-50 sm:text-5xl">
                     {match.homeTeam.name}
                   </h1>
@@ -208,9 +209,9 @@ export default function MatchDetailClient({
                   {dictionary.matchDetail.versusShort}
                 </span>
                 <div className="flex items-center gap-2">
-                  {match.awayTeam.crestUrl && (
-                    <img src={match.awayTeam.crestUrl} alt="" className="h-10 w-10 object-contain" />
-                  )}
+                  <span className="text-4xl sm:text-5xl select-none" role="img" aria-label={match.awayTeam.name}>
+                    {getFlagEmoji(match.awayTeam.name)}
+                  </span>
                   <h1 className="text-3xl font-semibold text-slate-50 sm:text-5xl">
                     {match.awayTeam.name}
                   </h1>
@@ -235,9 +236,9 @@ export default function MatchDetailClient({
 
           <div className="mt-6 grid grid-cols-[1fr_auto_1fr] items-center gap-3 rounded-lg border border-slate-800 bg-black/25 p-4 sm:p-6">
             <div className="flex min-w-0 items-center gap-4">
-              {match.homeTeam.crestUrl && (
-                <img src={match.homeTeam.crestUrl} alt="" className="h-10 w-10 object-contain" />
-              )}
+              <span className="text-4xl select-none" role="img" aria-label={match.homeTeam.name}>
+                {getFlagEmoji(match.homeTeam.name)}
+              </span>
               <div className="min-w-0">
                 <p className="truncate text-xl font-bold text-slate-50">
                   {match.homeTeam.name}
@@ -280,9 +281,9 @@ export default function MatchDetailClient({
                   </p>
                 </div>
               </div>
-              {match.awayTeam.crestUrl && (
-                <img src={match.awayTeam.crestUrl} alt="" className="h-10 w-10 object-contain" />
-              )}
+              <span className="text-4xl select-none" role="img" aria-label={match.awayTeam.name}>
+                {getFlagEmoji(match.awayTeam.name)}
+              </span>
             </div>
           </div>
         </section>

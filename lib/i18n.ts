@@ -164,6 +164,10 @@ const dictionaries: Record<Locale, Dictionary> = {
       away: "Away",
       matchup: "Matchup",
       versusShort: "vs",
+      fifaRanking: "FIFA Ranking",
+      rankingDiff: "Ranking Difference",
+      higher: "Higher",
+      lower: "Lower",
     },
     recentForm: {
       recentForm: "Recent form",
@@ -279,6 +283,10 @@ const dictionaries: Record<Locale, Dictionary> = {
       away: "Đội khách",
       matchup: "Đối đầu",
       versusShort: "gặp",
+      fifaRanking: "Bảng xếp hạng FIFA",
+      rankingDiff: "Chênh lệch thứ hạng",
+      higher: "Cao hơn",
+      lower: "Thấp hơn",
     },
     recentForm: {
       recentForm: "Phong độ gần đây",

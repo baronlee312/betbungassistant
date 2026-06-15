@@ -25,13 +25,14 @@ function extractStat(statsData: any, key: string) {
 }
 
 async function main() {
-  console.log("🚀 Starting Missing Stats Filler");
+  console.log("🚀 Starting Missing Stats Filler (Browser Intercept Mode)");
   
   const matchesToUpdate = await prisma.match.findMany({
     where: {
       status: "FINISHED",
       homeShots: null, // Using homeShots as an indicator that stats are missing
-      sofascoreId: { not: null }
+      sofascoreId: { not: null },
+      league: "FIFA World Cup 2026"
     },
     include: {
       homeTeam: true,
@@ -48,33 +49,67 @@ async function main() {
   console.log(`🔍 Found ${matchesToUpdate.length} matches missing statistics.`);
 
   const browser = await puppeteer.launch({ 
-    headless: false, // Set to false if you need to solve Cloudflare manually
+    headless: false, // Must be headful to trigger interactive page scripts
+    executablePath: "/Applications/Google Chrome.app/Contents/MacOS/Google Chrome",
     defaultViewport: null 
   });
   const page = await browser.newPage();
 
-  // Navigate to a generic sofascore page first to establish cookies/session
-  await page.goto("https://www.sofascore.com", { waitUntil: "networkidle2", timeout: 0 });
-  console.log("⏳ Waiting to ensure page is loaded...");
-  await new Promise((r) => setTimeout(r, 5000));
-
   let updatedCount = 0;
 
   for (const match of matchesToUpdate) {
-    console.log(`\nFetching stats for match ${match.sofascoreId} (${match.homeTeam.name} vs ${match.awayTeam.name})...`);
+    const mid = match.sofascoreId;
+    console.log(`\n--------------------------------------------`);
+    console.log(`Fetching stats for match ${mid} (${match.homeTeam.name} vs ${match.awayTeam.name})...`);
     
-    try {
-      const statsJson = await page.evaluate(async (mid) => {
-        try {
-          const response = await fetch(`https://www.sofascore.com/api/v1/event/${mid}/statistics`);
-          if (response.status === 404) return { statistics: null };
-          return await response.json();
-        } catch (e) {
-          return { error: String(e) };
-        }
-      }, match.sofascoreId);
+    let statsJson: any = null;
 
-      if (statsJson.statistics) {
+    // Define response interceptor for this specific match ID
+    const interceptor = async (response: any) => {
+      const resUrl = response.url();
+      if (resUrl.includes(`/api/v1/event/${mid}/statistics`) && response.request().method() === "GET") {
+        try {
+          statsJson = await response.json();
+          console.log("  ✅ Statistics JSON intercepted successfully!");
+        } catch (e) {
+          console.error("  ❌ Failed to parse intercepted statistics JSON:", e);
+        }
+      }
+    };
+
+    page.on("response", interceptor);
+
+    try {
+      const url = `https://www.sofascore.com/event/${mid}`;
+      await page.goto(url, { waitUntil: "domcontentloaded", timeout: 45000 });
+      
+      // Wait for page initial load
+      await new Promise((r) => setTimeout(r, 5000));
+
+      // Click the Statistics tab
+      console.log("  Clicking the 'Statistics' tab...");
+      const clicked = await page.evaluate(() => {
+        const elements = Array.from(document.querySelectorAll("button, a, div, span"));
+        const btn = elements.find(el => {
+          const text = (el.textContent || "").trim();
+          return text === "Statistics" || text === "Thống kê" || text === "Stats";
+        });
+        if (btn) {
+          (btn as HTMLElement).click();
+          return { success: true, text: btn.textContent?.trim() };
+        }
+        return { success: false };
+      });
+
+      console.log(`  Click result: ${JSON.stringify(clicked)}`);
+
+      // Wait for the interceptor to capture the data (max 6 seconds)
+      for (let i = 0; i < 12; i++) {
+        if (statsJson) break;
+        await new Promise((r) => setTimeout(r, 500));
+      }
+
+      if (statsJson && statsJson.statistics) {
         const stats = statsJson.statistics;
         const possession = extractStat(stats, "ballPossession");
         const shots = extractStat(stats, "totalShotsOnGoal");
@@ -111,22 +146,23 @@ async function main() {
           }
         });
 
-        console.log(`  ✅ Updated stats for match ${match.sofascoreId}`);
+        console.log(`  🎉 Updated stats for match ${mid} successfully!`);
         updatedCount++;
-      } else if (statsJson.error) {
-        console.log(`  ❌ Error fetching stats: ${statsJson.error}`);
       } else {
-        console.log(`  ⚠️ No stats available for this match.`);
+        console.log(`  ⚠️ No statistics could be fetched or captured for match ${mid}.`);
       }
     } catch (e) {
-      console.log(`  ❌ Failed to fetch stats for match ${match.sofascoreId}: ${e instanceof Error ? e.message : e}`);
+      console.log(`  ❌ Error processing match ${mid}: ${e instanceof Error ? e.message : e}`);
+    } finally {
+      // Clean up the interceptor to prevent memory leak and incorrect matching
+      page.off("response", interceptor);
     }
 
-    // Small delay between requests
+    // Delay between matches
     await new Promise((r) => setTimeout(r, 2000));
   }
 
-  console.log(`\n🎉 Finished! Updated ${updatedCount} matches.`);
+  console.log(`\n🎉 Finished stats filling! Updated ${updatedCount} matches.`);
   await browser.close();
   await prisma.$disconnect();
 }

@@ -1,33 +1,15 @@
 "use client";
 
-import { useState } from "react";
+import { getFlagEmoji } from "@/lib/flags";
 
 interface TeamFlagProps {
-  src: string;
-  alt: string;
+  teamName: string;
 }
 
-export default function TeamFlag({ src, alt }: TeamFlagProps) {
-  const [error, setError] = useState(false);
-
-  if (error || !src) {
-    return (
-      <div className="h-6 w-9 flex-shrink-0 flex items-center justify-center rounded shadow-sm border border-slate-700 bg-slate-800 text-[10px]">
-        🚩
-      </div>
-    );
-  }
-
+export default function TeamFlag({ teamName }: TeamFlagProps) {
   return (
-    <img
-      src={src}
-      alt={alt}
-      width={36}
-      height={24}
-      className="h-6 w-9 flex-shrink-0 object-cover rounded shadow-sm border border-slate-700 bg-slate-800"
-      referrerPolicy="no-referrer"
-      loading="lazy"
-      onError={() => setError(true)}
-    />
+    <span className="text-xl select-none leading-none" role="img" aria-label={teamName}>
+      {getFlagEmoji(teamName)}
+    </span>
   );
 }

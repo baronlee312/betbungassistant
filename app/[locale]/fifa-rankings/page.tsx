@@ -105,9 +105,7 @@ export default async function FifaRankingsPage({ params }: FifaRankingsPageProps
                     </td>
                     <td className="px-6 py-4 font-semibold text-slate-100">
                       <div className="flex items-center gap-3">
-                        {team.flagUrl && (
-                          <TeamFlag src={team.flagUrl} alt={`${team.teamName} flag`} />
-                        )}
+                        <TeamFlag teamName={team.teamName} />
                         {team.teamName}
                       </div>
                     </td>

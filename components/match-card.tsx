@@ -1,3 +1,4 @@
+import { getFlagEmoji } from "@/lib/flags";
 import Link from "next/link";
 import {
   formatMatchDate,
@@ -60,13 +61,9 @@ export default function MatchCard({
 
       <div className="grid grid-cols-[1fr_auto_1fr] items-center gap-3 py-6">
         <div className="flex min-w-0 flex-col items-start gap-2">
-          {match.homeTeam.crestUrl && (
-            <img
-              src={match.homeTeam.crestUrl}
-              alt=""
-              className="h-10 w-10 object-contain"
-            />
-          )}
+          <span className="text-4xl select-none" role="img" aria-label={match.homeTeam.name}>
+            {getFlagEmoji(match.homeTeam.name)}
+          </span>
           <div className="min-w-0">
             <p className="truncate text-xl font-bold text-slate-50">
               {match.homeTeam.name}
@@ -80,13 +77,9 @@ export default function MatchCard({
         </div>
 
         <div className="flex min-w-0 flex-col items-end gap-2">
-          {match.awayTeam.crestUrl && (
-            <img
-              src={match.awayTeam.crestUrl}
-              alt=""
-              className="h-10 w-10 object-contain"
-            />
-          )}
+          <span className="text-4xl select-none" role="img" aria-label={match.awayTeam.name}>
+            {getFlagEmoji(match.awayTeam.name)}
+          </span>
           <div className="min-w-0 text-right">
             <p className="truncate text-xl font-bold text-slate-50">
               {match.awayTeam.name}

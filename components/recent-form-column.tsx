@@ -7,6 +7,7 @@ import {
   getTeamOutcome,
   getVenueSide,
 } from "@/lib/format";
+import { getFlagEmoji } from "@/lib/flags";
 import type { Dictionary, Locale } from "@/lib/i18n";
 import { getLocalizedPath } from "@/lib/i18n";
 import Link from "next/link";
@@ -194,9 +195,9 @@ export default function RecentFormColumn({
                     
                     <div className="flex flex-1 items-center justify-between min-w-0 bg-slate-950/40 rounded px-2.5 py-1.5 border border-slate-800/50">
                       <div className="flex items-center gap-2 min-w-0 flex-1">
-                        {event.homeTeam.crestUrl && (
-                          <img src={event.homeTeam.crestUrl} alt="" className="h-4 w-4 object-contain" />
-                        )}
+                        <span className="text-base select-none" role="img" aria-label={event.homeTeam.name}>
+                          {getFlagEmoji(event.homeTeam.name)}
+                        </span>
                         <span className={`truncate text-sm font-bold ${event.homeTeam.id === teamId ? "text-emerald-400" : "text-slate-200"}`}>
                           {event.homeTeam.name}
                         </span>
@@ -210,9 +211,9 @@ export default function RecentFormColumn({
                         <span className={`truncate text-sm font-bold ${event.awayTeam.id === teamId ? "text-emerald-400" : "text-slate-200"}`}>
                           {event.awayTeam.name}
                         </span>
-                        {event.awayTeam.crestUrl && (
-                          <img src={event.awayTeam.crestUrl} alt="" className="h-4 w-4 object-contain" />
-                        )}
+                        <span className="text-base select-none" role="img" aria-label={event.awayTeam.name}>
+                          {getFlagEmoji(event.awayTeam.name)}
+                        </span>
                       </div>
                     </div>
                   </div>
