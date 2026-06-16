@@ -13,6 +13,17 @@ const TEAM_NAME_MAPPING: Record<string, string> = {
   "USA": "USA", // Already matches but good to have
 };
 
+// Add global unhandled rejection handler to ignore non-critical Puppeteer cleanup errors
+process.on("unhandledRejection", (reason) => {
+  console.warn("⚠️ Unhandled Promise Rejection:", reason);
+  const msg = reason instanceof Error ? reason.message : String(reason);
+  if (msg.includes("ENOTEMPTY") || msg.includes("rmdir")) {
+    console.log("Ignoring non-critical directory cleanup error.");
+    return;
+  }
+  process.exit(1);
+});
+
 async function main() {
   console.log("🚀 Starting FIFA World Ranking Scraper");
   
@@ -23,7 +34,10 @@ async function main() {
     args: isCI ? ["--no-sandbox", "--disable-setuid-sandbox"] : []
   };
 
-  if (!isCI) {
+  if (isCI) {
+    // Specify userDataDir in CI to prevent Puppeteer from attempting to delete its temporary profile directory on close
+    launchOptions.userDataDir = "/tmp/puppeteer_user_data_fifa";
+  } else {
     launchOptions.executablePath = "/Applications/Google Chrome.app/Contents/MacOS/Google Chrome";
   }
 
