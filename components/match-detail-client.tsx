@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { useState, useSyncExternalStore } from "react";
 import LanguageSwitcher from "@/components/language-switcher";
 import MatchStats from "@/components/match-stats";
@@ -81,6 +82,21 @@ export default function MatchDetailClient({
   const [awayForm, setAwayForm] = useState<TeamFormState>(() =>
     createFormState(initialAwayForm),
   );
+  const router = useRouter();
+
+  const handleBackToSchedule = (e: React.MouseEvent<HTMLAnchorElement>) => {
+    e.preventDefault();
+    if (
+      typeof window !== "undefined" &&
+      (document.referrer.includes(window.location.host) ||
+        (window.history.state && window.history.state.idx > 0))
+    ) {
+      router.back();
+    } else {
+      router.push(getLocalizedPath(locale, "/"));
+    }
+  };
+
   const timeZone = useSyncExternalStore(
     subscribeToTimeZoneChange,
     getBrowserTimeZone,
@@ -158,6 +174,7 @@ export default function MatchDetailClient({
           <div className="flex flex-wrap items-center gap-2">
             <Link
               href={getLocalizedPath(locale, "/")}
+              onClick={handleBackToSchedule}
               className="w-fit rounded-lg border border-slate-800 px-3 py-2 text-sm font-semibold text-slate-300 transition-colors duration-200 hover:border-emerald-400 hover:text-emerald-200 focus:outline-none focus:ring-2 focus:ring-emerald-400 focus:ring-offset-2 focus:ring-offset-slate-950"
             >
               {dictionary.matchDetail.backToSchedule}
