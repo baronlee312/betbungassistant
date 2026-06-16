@@ -59,11 +59,11 @@ async function main() {
   // Intercept responses for tournament matches (this part is still fine as we are on the tournament page)
   page.on("response", async (response) => {
     const url = response.url();
-    if (url.includes("/api/v1/unique-tournament/") && url.includes("/events")) {
+    if (url.includes("/api/v1/unique-tournament/") && (url.includes("/events") || url.includes("/scheduled-events/"))) {
       try {
         const json = await response.json();
         if (json.events) {
-          console.log(`✅ Intercepted ${json.events.length} tournament matches`);
+          console.log(`✅ Intercepted ${json.events.length} tournament matches from: ${url}`);
           for (const event of json.events) {
             if (event.tournament?.uniqueTournament?.id === 16) {
               event.isWorldCup2026 = true;
@@ -159,13 +159,14 @@ async function main() {
   }
 
   console.log("🎉 Scraping complete. Saving to database...");
-  await browser.close();
 
   let savedTeams = 0;
   let savedMatches = 0;
 
   // Save Teams to DB
+  console.log(`Saving ${teamsMap.size} teams to database...`);
   for (const team of Array.from(teamsMap.values())) {
+    console.log(`  Saving team ${savedTeams + 1}/${teamsMap.size}: ${team.name} (${team.id})...`);
     await prisma.team.upsert({
       where: { sofascoreId: team.id },
       update: {
@@ -184,6 +185,7 @@ async function main() {
   }
 
   // Save Matches to DB
+  console.log(`Saving ${matchesMap.size} matches to database...`);
   for (const match of Array.from(matchesMap.values())) {
     if (!match.homeTeam || !match.awayTeam) continue;
 
@@ -297,6 +299,17 @@ async function main() {
   }
 
   console.log(`✅ Saved ${savedTeams} teams and ${savedMatches} matches (including past matches with statistics) to the database.`);
+
+  try {
+    console.log("Closing browser...");
+    await Promise.race([
+      browser.close(),
+      new Promise((resolve) => setTimeout(resolve, 5000))
+    ]);
+  } catch (e) {
+    console.error("Browser close timed out or failed:", e);
+  }
+
   await prisma.$disconnect();
 }
 
