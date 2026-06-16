@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useSyncExternalStore } from "react";
+import { useEffect, useMemo, useSyncExternalStore } from "react";
 import MatchCard from "@/components/match-card";
 import {
   DEFAULT_VIEWER_TIME_ZONE,
@@ -119,6 +119,36 @@ export default function ScheduleSections({
     [dateTimeDictionary, languageTag, matches, timeZone],
   );
 
+  const nextMatch = useMemo(() => {
+    if (!matches || matches.length === 0) return null;
+    // Sort matches by kickoff time ascending
+    const sorted = [...matches].sort((a, b) => getMatchKickoffSortValue(a) - getMatchKickoffSortValue(b));
+    // Find the first match that is not finished
+    const found = sorted.find((m) => {
+      const status = m.status?.toUpperCase();
+      const isFinished = status === "FINISHED" || status === "MATCH FINISHED" || status === "ENDED";
+      return !isFinished;
+    });
+    return found || null;
+  }, [matches]);
+
+  useEffect(() => {
+    if (!nextMatch) return;
+    
+    // Check if we already scrolled in this page session to ensure it only runs on first page load
+    const hasScrolled = sessionStorage.getItem("home_scrolled");
+    if (!hasScrolled) {
+      const element = document.getElementById(`match-${nextMatch.id}`);
+      if (element) {
+        const timer = setTimeout(() => {
+          element.scrollIntoView({ behavior: "smooth", block: "center" });
+          sessionStorage.setItem("home_scrolled", "true");
+        }, 500);
+        return () => clearTimeout(timer);
+      }
+    }
+  }, [nextMatch]);
+
   return (
     <section aria-label={dictionary.ariaLabel} className="space-y-8">
       <div className="flex flex-col gap-2 border-b border-slate-900 pb-4 sm:flex-row sm:items-end sm:justify-between">
@@ -151,6 +181,7 @@ export default function ScheduleSections({
             <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
               {section.matches.map((localizedMatch) => (
                 <MatchCard
+                  id={`match-${localizedMatch.match.id}`}
                   dictionary={matchCardDictionary}
                   href={getLocalizedPath(locale, `/match/${localizedMatch.match.id}`)}
                   key={localizedMatch.match.id}

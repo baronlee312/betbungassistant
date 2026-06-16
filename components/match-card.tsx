@@ -10,6 +10,7 @@ import type { Dictionary } from "@/lib/i18n";
 import type { NormalizedMatch } from "@/lib/thesportsdb-types";
 
 interface MatchCardProps {
+  id?: string;
   dictionary?: Dictionary["matchCard"];
   statusDictionary?: Dictionary["status"];
   match: NormalizedMatch;
@@ -28,6 +29,7 @@ const defaultDictionary: Dictionary["matchCard"] = {
 };
 
 export default function MatchCard({
+  id,
   dictionary = defaultDictionary,
   statusDictionary,
   href,
@@ -47,6 +49,7 @@ export default function MatchCard({
 
   return (
     <Link
+      id={id}
       href={href ?? `/match/${match.id}`}
       aria-label={ariaLabel}
       className="group flex min-h-56 cursor-pointer flex-col justify-between rounded-lg border border-slate-800 bg-slate-950/80 p-5 shadow-2xl shadow-black/20 transition-colors duration-200 hover:border-emerald-400/70 hover:bg-slate-900 focus:outline-none focus:ring-2 focus:ring-emerald-400 focus:ring-offset-2 focus:ring-offset-slate-950"

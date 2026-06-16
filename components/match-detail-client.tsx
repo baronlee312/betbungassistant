@@ -88,8 +88,8 @@ export default function MatchDetailClient({
     e.preventDefault();
     if (
       typeof window !== "undefined" &&
-      (document.referrer.includes(window.location.host) ||
-        (window.history.state && window.history.state.idx > 0))
+      document.referrer &&
+      document.referrer.includes(window.location.host)
     ) {
       router.back();
     } else {
