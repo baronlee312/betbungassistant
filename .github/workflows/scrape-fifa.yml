@@ -1,0 +1,32 @@
+name: Scrape FIFA Rankings
+
+on:
+  schedule:
+    - cron: '0 0 * * 0' # Chạy vào 00:00 Chủ nhật hàng tuần
+  workflow_dispatch: # Cho phép kích hoạt thủ công từ giao diện GitHub
+
+jobs:
+  scrape:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: 'npm'
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Generate Prisma Client
+        run: npx prisma generate
+
+      - name: Run Scraper
+        env:
+          DATABASE_URL: ${{ secrets.DATABASE_URL }}
+          DIRECT_URL: ${{ secrets.DIRECT_URL }}
+        run: npx tsx scripts/scrape-fifa.ts

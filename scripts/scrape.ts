@@ -25,11 +25,18 @@ async function main() {
   console.log("🚀 Starting Sofascore Scraper (Manual Mode)");
   console.log("If a Cloudflare challenge appears, please solve it manually in the browser window.");
   
-  const browser = await puppeteer.launch({ 
-    headless: false, 
+  const isCI = !!process.env.GITHUB_ACTIONS;
+  const launchOptions: any = {
+    headless: isCI ? true : false,
     defaultViewport: null,
-    executablePath: "/Applications/Google Chrome.app/Contents/MacOS/Google Chrome"
-  });
+    args: isCI ? ["--no-sandbox", "--disable-setuid-sandbox"] : []
+  };
+
+  if (!isCI) {
+    launchOptions.executablePath = "/Applications/Google Chrome.app/Contents/MacOS/Google Chrome";
+  }
+
+  const browser = await puppeteer.launch(launchOptions);
   const page = await browser.newPage();
 
   const teamsMap = new Map<number, any>();

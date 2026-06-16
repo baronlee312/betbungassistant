@@ -16,11 +16,18 @@ const TEAM_NAME_MAPPING: Record<string, string> = {
 async function main() {
   console.log("🚀 Starting FIFA World Ranking Scraper");
   
-  const browser = await puppeteer.launch({ 
+  const isCI = !!process.env.GITHUB_ACTIONS;
+  const launchOptions: any = {
     headless: true,
     defaultViewport: { width: 1920, height: 1080 },
-    executablePath: "/Applications/Google Chrome.app/Contents/MacOS/Google Chrome"
-  });
+    args: isCI ? ["--no-sandbox", "--disable-setuid-sandbox"] : []
+  };
+
+  if (!isCI) {
+    launchOptions.executablePath = "/Applications/Google Chrome.app/Contents/MacOS/Google Chrome";
+  }
+
+  const browser = await puppeteer.launch(launchOptions);
   const page = await browser.newPage();
 
   console.log("Navigating to FIFA rankings page...");
