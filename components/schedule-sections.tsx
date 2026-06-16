@@ -99,6 +99,8 @@ function getServerTimeZone() {
   return DEFAULT_VIEWER_TIME_ZONE;
 }
 
+let hasScrolledGlobally = false;
+
 export default function ScheduleSections({
   dateTimeDictionary,
   dictionary,
@@ -133,20 +135,17 @@ export default function ScheduleSections({
   }, [matches]);
 
   useEffect(() => {
-    if (!nextMatch) return;
-    
-    // Check if we already scrolled in this page session to ensure it only runs on first page load
-    const hasScrolled = sessionStorage.getItem("home_scrolled");
-    if (!hasScrolled) {
+    if (!nextMatch || hasScrolledGlobally) return;
+
+    const timer = setTimeout(() => {
       const element = document.getElementById(`match-${nextMatch.id}`);
       if (element) {
-        const timer = setTimeout(() => {
-          element.scrollIntoView({ behavior: "smooth", block: "center" });
-          sessionStorage.setItem("home_scrolled", "true");
-        }, 500);
-        return () => clearTimeout(timer);
+        element.scrollIntoView({ behavior: "smooth", block: "center" });
+        hasScrolledGlobally = true;
       }
-    }
+    }, 800);
+
+    return () => clearTimeout(timer);
   }, [nextMatch]);
 
   return (
