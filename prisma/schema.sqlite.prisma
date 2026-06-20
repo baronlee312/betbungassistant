@@ -69,3 +69,9 @@ model FifaRanking {
   change         Float?
   lastUpdated    DateTime @default(now())
 }
+
+model ScrapeSetting {
+  key   String @id
+  value String
+}
+

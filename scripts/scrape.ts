@@ -41,6 +41,25 @@ process.on("unhandledRejection", (reason) => {
 async function main() {
   console.log("🚀 Starting Sofascore Scraper (Manual Mode)");
   console.log("If a Cloudflare challenge appears, please solve it manually in the browser window.");
+
+  // Load last update timestamp from DB
+  let lastScrapeTime = 0;
+  try {
+    const setting = await prisma.scrapeSetting.findUnique({
+      where: { key: "last_scrape_time" },
+    });
+    if (setting) {
+      lastScrapeTime = parseInt(setting.value);
+      console.log(`Last scrape time found in database: ${new Date(lastScrapeTime).toISOString()}`);
+    } else {
+      console.log("No last scrape time found in database. Scraping all matches.");
+    }
+  } catch (e) {
+    console.error("Failed to fetch last scrape time setting:", e);
+  }
+
+  // Use a 24-hour buffer to handle matches that started before the last run but completed after
+  const filterStartTime = Math.max(0, lastScrapeTime - 24 * 60 * 60 * 1000);
   
   const isCI = !!process.env.GITHUB_ACTIONS;
   const launchOptions: any = {
@@ -82,9 +101,11 @@ async function main() {
             if (event.tournament?.uniqueTournament?.id === 16) {
               event.isWorldCup2026 = true;
             }
-            matchesMap.set(event.id, event);
-            if (event.homeTeam) teamsMap.set(event.homeTeam.id, event.homeTeam);
-            if (event.awayTeam) teamsMap.set(event.awayTeam.id, event.awayTeam);
+            if (event.startTimestamp * 1000 > filterStartTime) {
+              matchesMap.set(event.id, event);
+              if (event.homeTeam) teamsMap.set(event.homeTeam.id, event.homeTeam);
+              if (event.awayTeam) teamsMap.set(event.awayTeam.id, event.awayTeam);
+            }
           }
         }
       } catch (e) {
@@ -125,9 +146,11 @@ async function main() {
       if (json.events) {
         console.log(`✅ Fetched ${json.events.length} past matches for team ${teamId} (Total matches: ${matchesMap.size})`);
         for (const event of json.events) {
-          matchesMap.set(event.id, event);
-          if (event.homeTeam) teamsMap.set(event.homeTeam.id, event.homeTeam);
-          if (event.awayTeam) teamsMap.set(event.awayTeam.id, event.awayTeam);
+          if (event.startTimestamp * 1000 > filterStartTime) {
+            matchesMap.set(event.id, event);
+            if (event.homeTeam) teamsMap.set(event.homeTeam.id, event.homeTeam);
+            if (event.awayTeam) teamsMap.set(event.awayTeam.id, event.awayTeam);
+          }
         }
       } else if (json.error) {
         console.log(`❌ Error fetching team ${teamId}: ${JSON.stringify(json.error)}`);
@@ -389,6 +412,19 @@ async function main() {
   }
 
   console.log(`✅ Saved ${savedTeams} teams and ${savedMatches} matches (including past matches with statistics) to the database.`);
+
+  // Save current run's timestamp as the last update time
+  const currentScrapeTime = Date.now();
+  try {
+    await prisma.scrapeSetting.upsert({
+      where: { key: "last_scrape_time" },
+      update: { value: String(currentScrapeTime) },
+      create: { key: "last_scrape_time", value: String(currentScrapeTime) },
+    });
+    console.log(`✅ Saved current scrape timestamp: ${new Date(currentScrapeTime).toISOString()}`);
+  } catch (e) {
+    console.error("❌ Failed to save current scrape timestamp:", e);
+  }
 
   try {
     console.log("Closing browser...");
