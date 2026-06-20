@@ -10,9 +10,9 @@ import {
   createTeamRecentEventsPayload,
   getEventById,
   getTeamRecentEvents,
+  getFifaRankingByTeam,
 } from "@/lib/thesportsdb";
 import { getFootballDataTeamMatches } from "@/lib/football-data";
-import { prisma } from "@/lib/prisma";
 
 export const dynamic = "force-dynamic";
 
@@ -49,12 +49,8 @@ export default async function MatchPage({ params }: MatchPageProps) {
           events.length > 0 ? events : (match.awayTeam.id ? getTeamRecentEvents(match.awayTeam.id) : [])
         ) 
       : Promise.resolve([]),
-    prisma.fifaRanking.findFirst({
-      where: { teamName: match.homeTeam.name }
-    }),
-    prisma.fifaRanking.findFirst({
-      where: { teamName: match.awayTeam.name }
-    })
+    getFifaRankingByTeam(match.homeTeam.name),
+    getFifaRankingByTeam(match.awayTeam.name)
   ]);
 
   return (

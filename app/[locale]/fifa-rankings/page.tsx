@@ -6,7 +6,7 @@ import {
   isLocale,
   type Locale,
 } from "@/lib/i18n";
-import { prisma } from "@/lib/prisma";
+import { getFifaRankings } from "@/lib/thesportsdb";
 import TeamFlag from "@/components/team-flag";
 
 interface FifaRankingsPageProps {
@@ -26,11 +26,7 @@ export default async function FifaRankingsPage({ params }: FifaRankingsPageProps
 
   const locale: Locale = localeParam;
   const dictionary = getDictionary(locale);
-  const rankings = await prisma.fifaRanking.findMany({
-    orderBy: {
-      rank: 'asc'
-    }
-  });
+  const rankings = await getFifaRankings();
 
   const lastUpdated = rankings.length > 0 ? rankings[0].lastUpdated : null;
 

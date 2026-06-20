@@ -57,6 +57,12 @@ model Match {
   awaySaves         Int?
   
   statisticsJson    String?
+
+  @@index([homeTeamId])
+  @@index([awayTeamId])
+  @@index([league])
+  @@index([date])
+  @@index([status])
 }
 
 model FifaRanking {
@@ -68,10 +74,13 @@ model FifaRanking {
   previousPoints Float?
   change         Float?
   lastUpdated    DateTime @default(now())
+
+  @@index([rank])
 }
 
 model ScrapeSetting {
   key   String @id
   value String
 }
+
 

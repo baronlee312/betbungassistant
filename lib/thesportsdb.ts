@@ -3,6 +3,7 @@ import type {
   TeamRecentEventsPayload,
 } from "@/lib/thesportsdb-types";
 import { prisma } from "./prisma";
+import { unstable_cache } from "next/cache";
 
 export const WORLD_CUP_LEAGUE_ID = "4429";
 export const WORLD_CUP_SEASON = "2026";
@@ -53,82 +54,138 @@ function normalizeDbMatch(match: any): NormalizedMatch {
   };
 }
 
-export async function getWorldCupSchedule(): Promise<NormalizedMatch[]> {
-  try {
-    const matches = await prisma.match.findMany({
-      where: {
-        league: "FIFA World Cup 2026",
-      },
-      include: {
-        homeTeam: true,
-        awayTeam: true,
-      },
-      orderBy: {
-        date: "asc",
-      },
-    });
+export const getWorldCupSchedule = unstable_cache(
+  async (): Promise<NormalizedMatch[]> => {
+    try {
+      const matches = await prisma.match.findMany({
+        where: {
+          league: "FIFA World Cup 2026",
+        },
+        include: {
+          homeTeam: true,
+          awayTeam: true,
+        },
+        orderBy: {
+          date: "asc",
+        },
+      });
 
-    return matches.map(normalizeDbMatch).slice(0, FREE_TIER_SCHEDULE_LIMIT);
-  } catch (e) {
-    console.error("Failed to load WC schedule", e);
-    return [];
-  }
-}
+      return matches.map(normalizeDbMatch).slice(0, FREE_TIER_SCHEDULE_LIMIT);
+    } catch (e) {
+      console.error("Failed to load WC schedule", e);
+      return [];
+    }
+  },
+  ["world-cup-schedule"],
+  { revalidate: 300 } // 5 minutes cache
+);
 
 export async function getEventById(matchId: string): Promise<NormalizedMatch | null> {
-  try {
-    const parsedId = parseInt(matchId, 10);
-    const match = await prisma.match.findFirst({
-      where: {
-        OR: [
-          { sofascoreId: parsedId || -1 },
-          { id: parsedId || -1 },
-        ]
-      },
-      include: {
-        homeTeam: true,
-        awayTeam: true,
-      },
-    });
+  const fetchEvent = unstable_cache(
+    async (mid: string) => {
+      try {
+        const parsedId = parseInt(mid, 10);
+        const match = await prisma.match.findFirst({
+          where: {
+            OR: [
+              { sofascoreId: parsedId || -1 },
+              { id: parsedId || -1 },
+            ]
+          },
+          include: {
+            homeTeam: true,
+            awayTeam: true,
+          },
+        });
 
-    if (!match) return null;
-    return normalizeDbMatch(match);
-  } catch (e) {
-    console.error("Failed to load match by id", e);
-    return null;
-  }
+        if (!match) return null;
+        return normalizeDbMatch(match);
+      } catch (e) {
+        console.error("Failed to load match by id", e);
+        return null;
+      }
+    },
+    [`match-by-id-${matchId}`],
+    { revalidate: 300 } // 5 minutes cache
+  );
+
+  return fetchEvent(matchId);
 }
 
 export async function getTeamRecentEvents(teamId: string): Promise<NormalizedMatch[]> {
-  try {
-    const parsedId = parseInt(teamId, 10);
-    if (!parsedId) return [];
+  const fetchRecent = unstable_cache(
+    async (tid: string) => {
+      try {
+        const parsedId = parseInt(tid, 10);
+        if (!parsedId) return [];
 
-    const matches = await prisma.match.findMany({
-      where: {
-        OR: [
-          { homeTeam: { sofascoreId: parsedId } },
-          { awayTeam: { sofascoreId: parsedId } },
-          { homeTeam: { id: parsedId } },
-          { awayTeam: { id: parsedId } },
-        ],
-        status: "FINISHED"
-      },
-      include: {
-        homeTeam: true,
-        awayTeam: true,
-      },
-      orderBy: {
-        date: "desc",
-      },
-      take: FREE_TIER_RECENT_EVENTS_LIMIT,
-    });
+        const matches = await prisma.match.findMany({
+          where: {
+            OR: [
+              { homeTeam: { sofascoreId: parsedId } },
+              { awayTeam: { sofascoreId: parsedId } },
+              { homeTeam: { id: parsedId } },
+              { awayTeam: { id: parsedId } },
+            ],
+            status: "FINISHED"
+          },
+          include: {
+            homeTeam: true,
+            awayTeam: true,
+          },
+          orderBy: {
+            date: "desc",
+          },
+          take: FREE_TIER_RECENT_EVENTS_LIMIT,
+        });
 
-    return matches.map(normalizeDbMatch);
-  } catch (e) {
-    console.error("Failed to load recent events", e);
-    return [];
-  }
+        return matches.map(normalizeDbMatch);
+      } catch (e) {
+        console.error("Failed to load recent events", e);
+        return [];
+      }
+    },
+    [`team-recent-events-${teamId}`],
+    { revalidate: 600 } // 10 minutes cache
+  );
+
+  return fetchRecent(teamId);
+}
+
+export const getFifaRankings = unstable_cache(
+  async () => {
+    try {
+      return await prisma.fifaRanking.findMany({
+        orderBy: {
+          rank: "asc",
+        },
+      });
+    } catch (e) {
+      console.error("Failed to load FIFA rankings", e);
+      return [];
+    }
+  },
+  ["fifa-rankings"],
+  { revalidate: 3600 } // 1 hour cache
+);
+
+export async function getFifaRankingByTeam(teamName: string) {
+  const fetchRanking = unstable_cache(
+    async (name: string) => {
+      try {
+        return await prisma.fifaRanking.findFirst({
+          where: { teamName: name },
+        });
+      } catch (e) {
+        console.error(`Failed to load ranking for team ${name}`, e);
+        return null;
+      }
+    },
+    [`fifa-ranking-team-${teamName}`],
+    { revalidate: 3600 } // 1 hour cache
+  );
+
+  return fetchRanking(teamName);
 }
 
 export function createTeamRecentEventsPayload(
