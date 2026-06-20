@@ -4,7 +4,13 @@ import StealthPlugin from "puppeteer-extra-plugin-stealth";
 import { PrismaClient } from "@prisma/client";
 
 puppeteer.use(StealthPlugin());
-const prisma = new PrismaClient();
+const prisma = new PrismaClient({
+  datasources: {
+    db: {
+      url: process.env.DIRECT_URL || process.env.DATABASE_URL,
+    },
+  },
+});
 
 function extractStat(statsData: any, key: string) {
   if (!statsData || !statsData.length) return { home: null, away: null };
@@ -55,6 +61,14 @@ async function main() {
 
   const teamsMap = new Map<number, any>();
   const matchesMap = new Map<number, any>();
+  let sofascoreToken = "46ad4e";
+
+  page.on("request", (req) => {
+    const headers = req.headers();
+    if (headers["x-requested-with"]) {
+      sofascoreToken = headers["x-requested-with"];
+    }
+  });
 
   // Intercept responses for tournament matches (this part is still fine as we are on the tournament page)
   page.on("response", async (response) => {
@@ -80,7 +94,7 @@ async function main() {
   });
 
   console.log("Navigating to World Cup 2026 page...");
-  await page.goto("https://www.sofascore.com/football/tournament/world/world-championship/16#id:58210", { waitUntil: "networkidle2", timeout: 0 });
+  await page.goto("https://www.sofascore.com/football/tournament/world/world-championship/16#id:58210", { waitUntil: "domcontentloaded", timeout: 0 });
   
   console.log("⏳ Waiting 10 seconds to ensure fixtures load...");
   await new Promise((r) => setTimeout(r, 10000));
@@ -92,23 +106,31 @@ async function main() {
   for (const teamId of teamIds) {
     console.log(`Fetching past matches for team ${teamId}...`);
     try {
-      // Use in-page fetch to avoid navigation overhead and timeouts
-      const json = await page.evaluate(async (tid) => {
+      const json = await page.evaluate(async (tid, token) => {
         try {
-          const response = await fetch(`https://www.sofascore.com/api/v1/team/${tid}/events/last/0`);
+          const response = await fetch(`https://www.sofascore.com/api/v1/team/${tid}/events/last/0`, {
+            headers: {
+              "x-requested-with": token
+            }
+          });
+          if (!response.ok) {
+            return { error: `HTTP ${response.status}: ${response.statusText}` };
+          }
           return await response.json();
-        } catch (e) {
-          return { error: String(e) };
+        } catch (e: any) {
+          return { error: e?.message || String(e) };
         }
-      }, teamId);
+      }, teamId, sofascoreToken);
 
       if (json.events) {
         console.log(`✅ Fetched ${json.events.length} past matches for team ${teamId} (Total matches: ${matchesMap.size})`);
         for (const event of json.events) {
           matchesMap.set(event.id, event);
+          if (event.homeTeam) teamsMap.set(event.homeTeam.id, event.homeTeam);
+          if (event.awayTeam) teamsMap.set(event.awayTeam.id, event.awayTeam);
         }
       } else if (json.error) {
-        console.log(`❌ Error fetching team ${teamId}: ${json.error}`);
+        console.log(`❌ Error fetching team ${teamId}: ${JSON.stringify(json.error)}`);
       }
     } catch (e) {
       console.log(`Failed to fetch past matches for team ${teamId}: ${e instanceof Error ? e.message : e}`);
@@ -123,37 +145,52 @@ async function main() {
     .sort((a, b) => b.startTimestamp - a.startTimestamp)
     .slice(0, 300); // Increased limit to 300 for better history coverage
 
-  console.log(`\nFetching deep statistics for ${finishedMatches.length} recent finished matches...`);
+  const finishedMatchIds = finishedMatches.map(m => m.id);
+  const existingMatches = await prisma.match.findMany({
+    where: {
+      sofascoreId: { in: finishedMatchIds },
+      homeShots: { not: null }
+    },
+    select: { sofascoreId: true }
+  });
+  const existingIds = new Set(existingMatches.map(m => m.sofascoreId).filter((id): id is number => id !== null));
+  console.log(`Found ${existingIds.size} matches with statistics already in the database.`);
+
+  console.log(`\nFetching deep statistics for finished matches that need them...`);
   
-  // To avoid redundant work, we could check DB here, but for simplicity we just fetch
-  // but we can skip if the match object already has statistics from intercept (unlikely for historical)
   for (const match of finishedMatches) {
     if (match.statistics) continue; 
     
-    // Quick check if we should skip (optional optimization)
-    // const exists = await prisma.match.findUnique({ where: { sofascoreId: match.id } });
-    // if (exists?.homeCorners !== null) continue;
+    if (existingIds.has(match.id)) {
+      continue;
+    }
 
     console.log(`Fetching stats for match ${match.id} (${match.homeTeam?.name} vs ${match.awayTeam?.name})...`);
     try {
-      const statsJson = await page.evaluate(async (mid) => {
+      const statsJson = await page.evaluate(async (mid, token) => {
         try {
-          const response = await fetch(`https://www.sofascore.com/api/v1/event/${mid}/statistics`);
+          const response = await fetch(`https://www.sofascore.com/api/v1/event/${mid}/statistics`, {
+            headers: {
+              "x-requested-with": token
+            }
+          });
           if (response.status === 404) return { statistics: null };
           return await response.json();
         } catch (e) {
           return { error: String(e) };
         }
-      }, match.id);
+      }, match.id, sofascoreToken);
 
       if (statsJson.statistics) {
         match.statistics = statsJson.statistics;
         console.log(`  ✅ Stats found: Corners ${extractStat(match.statistics, "cornerKicks").home}-${extractStat(match.statistics, "cornerKicks").away}`);
+      } else if (statsJson.error) {
+        console.log(`  ❌ Stats error for match ${match.id}: ${JSON.stringify(statsJson.error)}`);
       } else {
         console.log(`  ⚠️ No stats available for this match.`);
       }
     } catch (e) {
-      console.log(`  ❌ Failed or no stats for match ${match.id}`);
+      console.log(`  ❌ Failed or no stats for match ${match.id}: ${e instanceof Error ? e.message : e}`);
     }
     await new Promise((r) => setTimeout(r, 800));
   }
@@ -185,117 +222,170 @@ async function main() {
   }
 
   // Save Matches to DB
-  console.log(`Saving ${matchesMap.size} matches to database...`);
-  for (const match of Array.from(matchesMap.values())) {
-    if (!match.homeTeam || !match.awayTeam) continue;
-
-    for (const team of [match.homeTeam, match.awayTeam]) {
-      await prisma.team.upsert({
-        where: { sofascoreId: team.id },
-        update: {
-          name: team.name,
-          shortName: team.shortName,
-          crestUrl: `https://www.sofascore.com/api/v1/team/${team.id}/image`,
-        },
-        create: {
-          sofascoreId: team.id,
-          name: team.name,
-          shortName: team.shortName,
-          crestUrl: `https://www.sofascore.com/api/v1/team/${team.id}/image`,
-        },
+  const allMatchIds = Array.from(matchesMap.keys());
+  const existingMatchesDb = await prisma.match.findMany({
+    where: { sofascoreId: { in: allMatchIds } },
+    select: { sofascoreId: true, status: true, homeShots: true }
+  });
+  
+  const existingDbMap = new Map<number, { status: string; hasStats: boolean }>();
+  for (const m of existingMatchesDb) {
+    if (m.sofascoreId !== null) {
+      existingDbMap.set(m.sofascoreId, {
+        status: m.status,
+        hasStats: m.homeShots !== null
       });
     }
+  }
 
-    const homeTeamDb = await prisma.team.findUnique({ where: { sofascoreId: match.homeTeam.id } });
-    const awayTeamDb = await prisma.team.findUnique({ where: { sofascoreId: match.awayTeam.id } });
-
-    if (homeTeamDb && awayTeamDb) {
-      const isFinished = match.status?.type === "finished";
-      const statusStr = isFinished ? "FINISHED" : "TIMED";
-      const homeScore = isFinished ? match.homeScore?.current : null;
-      const awayScore = isFinished ? match.awayScore?.current : null;
-      const date = new Date(match.startTimestamp * 1000);
-
-      const stats = match.statistics;
-      const possession = extractStat(stats, "ballPossession");
-      const shots = extractStat(stats, "totalShotsOnGoal");
-      const shotsOnTarget = extractStat(stats, "shotsOnGoal");
-      const corners = extractStat(stats, "cornerKicks");
-      const fouls = extractStat(stats, "fouls");
-      const yellowCards = extractStat(stats, "yellowCards");
-      const redCards = extractStat(stats, "redCards");
-      const offsides = extractStat(stats, "offsides");
-      const saves = extractStat(stats, "goalkeeperSaves");
-
-      const statisticsJson = stats ? JSON.stringify(stats) : null;
-
-      // Determine league name: If it's our target tournament, use a canonical name
-      let leagueName = match.tournament?.name || "Unknown";
-      if (match.isWorldCup2026 || match.tournament?.uniqueTournament?.id === 16) {
-        leagueName = "FIFA World Cup 2026";
+  const matchesToUpsert = Array.from(matchesMap.values()).filter(match => {
+    if (!match.homeTeam || !match.awayTeam) return false;
+    const dbMatch = existingDbMap.get(match.id);
+    if (dbMatch) {
+      const dbIsFinished = dbMatch.status === "FINISHED";
+      if (dbIsFinished && dbMatch.hasStats && !match.statistics) {
+        return false;
       }
+    }
+    return true;
+  });
 
-      await prisma.match.upsert({
-        where: { sofascoreId: match.id },
+  // Fetch all existing teams from DB to build a lookup cache
+  const allTeamsDb = await prisma.team.findMany();
+  const dbTeamMap = new Map<number, number>(); // sofascoreId -> db id
+  for (const t of allTeamsDb) {
+    if (t.sofascoreId !== null) {
+      dbTeamMap.set(t.sofascoreId, t.id);
+    }
+  }
+
+  console.log(`Saving ${matchesToUpsert.length} matches to database (skipped ${matchesMap.size - matchesToUpsert.length} matches already in DB)...`);
+  for (const match of matchesToUpsert) {
+    let homeTeamDbId = dbTeamMap.get(match.homeTeam.id);
+    if (!homeTeamDbId) {
+      const t = await prisma.team.upsert({
+        where: { sofascoreId: match.homeTeam.id },
         update: {
-          homeScore,
-          awayScore,
-          status: statusStr,
-          date,
-          league: leagueName,
-          homePossession: possession.home,
-          awayPossession: possession.away,
-          homeShots: shots.home,
-          awayShots: shots.away,
-          homeShotsOnTarget: shotsOnTarget.home,
-          awayShotsOnTarget: shotsOnTarget.away,
-          homeCorners: corners.home,
-          awayCorners: corners.away,
-          homeFouls: fouls.home,
-          awayFouls: fouls.away,
-          homeYellowCards: yellowCards.home,
-          awayYellowCards: yellowCards.away,
-          homeRedCards: redCards.home,
-          awayRedCards: redCards.away,
-          homeOffsides: offsides.home,
-          awayOffsides: offsides.away,
-          homeSaves: saves.home,
-          awaySaves: saves.away,
-          statisticsJson,
+          name: match.homeTeam.name,
+          shortName: match.homeTeam.shortName,
+          crestUrl: `https://www.sofascore.com/api/v1/team/${match.homeTeam.id}/image`,
         },
         create: {
-          sofascoreId: match.id,
-          homeTeamId: homeTeamDb.id,
-          awayTeamId: awayTeamDb.id,
-          homeScore,
-          awayScore,
-          status: statusStr,
-          date,
-          league: leagueName,
-          season: match.season?.year || "Unknown",
-          homePossession: possession.home,
-          awayPossession: possession.away,
-          homeShots: shots.home,
-          awayShots: shots.away,
-          homeShotsOnTarget: shotsOnTarget.home,
-          awayShotsOnTarget: shotsOnTarget.away,
-          homeCorners: corners.home,
-          awayCorners: corners.away,
-          homeFouls: fouls.home,
-          awayFouls: fouls.away,
-          homeYellowCards: yellowCards.home,
-          awayYellowCards: yellowCards.away,
-          homeRedCards: redCards.home,
-          awayRedCards: redCards.away,
-          homeOffsides: offsides.home,
-          awayOffsides: offsides.away,
-          homeSaves: saves.home,
-          awaySaves: saves.away,
-          statisticsJson,
+          sofascoreId: match.homeTeam.id,
+          name: match.homeTeam.name,
+          shortName: match.homeTeam.shortName,
+          crestUrl: `https://www.sofascore.com/api/v1/team/${match.homeTeam.id}/image`,
         },
       });
-      savedMatches++;
+      homeTeamDbId = t.id;
+      dbTeamMap.set(match.homeTeam.id, t.id);
     }
+
+    let awayTeamDbId = dbTeamMap.get(match.awayTeam.id);
+    if (!awayTeamDbId) {
+      const t = await prisma.team.upsert({
+        where: { sofascoreId: match.awayTeam.id },
+        update: {
+          name: match.awayTeam.name,
+          shortName: match.awayTeam.shortName,
+          crestUrl: `https://www.sofascore.com/api/v1/team/${match.awayTeam.id}/image`,
+        },
+        create: {
+          sofascoreId: match.awayTeam.id,
+          name: match.awayTeam.name,
+          shortName: match.awayTeam.shortName,
+          crestUrl: `https://www.sofascore.com/api/v1/team/${match.awayTeam.id}/image`,
+        },
+      });
+      awayTeamDbId = t.id;
+      dbTeamMap.set(match.awayTeam.id, t.id);
+    }
+
+    const isFinished = match.status?.type === "finished";
+    const statusStr = isFinished ? "FINISHED" : "TIMED";
+    const homeScore = isFinished ? match.homeScore?.current : null;
+    const awayScore = isFinished ? match.awayScore?.current : null;
+    const date = new Date(match.startTimestamp * 1000);
+
+    const stats = match.statistics;
+    const possession = extractStat(stats, "ballPossession");
+    const shots = extractStat(stats, "totalShotsOnGoal");
+    const shotsOnTarget = extractStat(stats, "shotsOnGoal");
+    const corners = extractStat(stats, "cornerKicks");
+    const fouls = extractStat(stats, "fouls");
+    const yellowCards = extractStat(stats, "yellowCards");
+    const redCards = extractStat(stats, "redCards");
+    const offsides = extractStat(stats, "offsides");
+    const saves = extractStat(stats, "goalkeeperSaves");
+
+    const statisticsJson = stats ? JSON.stringify(stats) : null;
+
+    // Determine league name: If it's our target tournament, use a canonical name
+    let leagueName = match.tournament?.name || "Unknown";
+    if (match.isWorldCup2026 || match.tournament?.uniqueTournament?.id === 16) {
+      leagueName = "FIFA World Cup 2026";
+    }
+
+    await prisma.match.upsert({
+      where: { sofascoreId: match.id },
+      update: {
+        homeScore,
+        awayScore,
+        status: statusStr,
+        date,
+        league: leagueName,
+        homePossession: possession.home,
+        awayPossession: possession.away,
+        homeShots: shots.home,
+        awayShots: shots.away,
+        homeShotsOnTarget: shotsOnTarget.home,
+        awayShotsOnTarget: shotsOnTarget.away,
+        homeCorners: corners.home,
+        awayCorners: corners.away,
+        homeFouls: fouls.home,
+        awayFouls: fouls.away,
+        homeYellowCards: yellowCards.home,
+        awayYellowCards: yellowCards.away,
+        homeRedCards: redCards.home,
+        awayRedCards: redCards.away,
+        homeOffsides: offsides.home,
+        awayOffsides: offsides.away,
+        homeSaves: saves.home,
+        awaySaves: saves.away,
+        statisticsJson,
+      },
+      create: {
+        sofascoreId: match.id,
+        homeTeamId: homeTeamDbId,
+        awayTeamId: awayTeamDbId,
+        homeScore,
+        awayScore,
+        status: statusStr,
+        date,
+        league: leagueName,
+        season: match.season?.year || "Unknown",
+        homePossession: possession.home,
+        awayPossession: possession.away,
+        homeShots: shots.home,
+        awayShots: shots.away,
+        homeShotsOnTarget: shotsOnTarget.home,
+        awayShotsOnTarget: shotsOnTarget.away,
+        homeCorners: corners.home,
+        awayCorners: corners.away,
+        homeFouls: fouls.home,
+        awayFouls: fouls.away,
+        homeYellowCards: yellowCards.home,
+        awayYellowCards: yellowCards.away,
+        homeRedCards: redCards.home,
+        awayRedCards: redCards.away,
+        homeOffsides: offsides.home,
+        awayOffsides: offsides.away,
+        homeSaves: saves.home,
+        awaySaves: saves.away,
+        statisticsJson,
+      },
+    });
+    savedMatches++;
   }
 
   console.log(`✅ Saved ${savedTeams} teams and ${savedMatches} matches (including past matches with statistics) to the database.`);
