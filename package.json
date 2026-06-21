@@ -8,6 +8,7 @@
     "start": "next start",
     "lint": "eslint",
     "scrape": "npx tsx scripts/scrape.ts",
+    "sync-dev-db": "npx tsx scripts/migrate-postgres-to-sqlite.ts",
     "postinstall": "prisma generate"
   },
   "dependencies": {

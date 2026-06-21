@@ -179,12 +179,21 @@ async function main() {
   const existingIds = new Set(existingMatches.map(m => m.sofascoreId).filter((id): id is number => id !== null));
   console.log(`Found ${existingIds.size} matches with statistics already in the database.`);
 
+  // Calculate the 3-hour buffer threshold relative to the last scrape time
+  const rescrapeThreshold = lastScrapeTime - 3 * 60 * 60 * 1000;
+  if (lastScrapeTime > 0) {
+    console.log(`Rescraping stats for any matches starting after: ${new Date(rescrapeThreshold).toISOString()}`);
+  }
+
   console.log(`\nFetching deep statistics for finished matches that need them...`);
   
   for (const match of finishedMatches) {
     if (match.statistics) continue; 
     
-    if (existingIds.has(match.id)) {
+    const matchStartMs = match.startTimestamp * 1000;
+    const shouldRescrape = lastScrapeTime > 0 && matchStartMs >= rescrapeThreshold;
+
+    if (existingIds.has(match.id) && !shouldRescrape) {
       continue;
     }
 
