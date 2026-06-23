@@ -10,6 +10,7 @@ import {
   locales,
   type Locale,
 } from "@/lib/i18n";
+import ScrollToTop from "@/components/scroll-to-top";
 
 const jetbrainsMono = JetBrains_Mono({
   variable: "--font-jetbrains-mono",
@@ -54,7 +55,10 @@ export default async function RootLayout({ children, params }: LocaleLayoutProps
       lang={getLocaleLanguageTag(locale)}
       className={`${jetbrainsMono.variable} h-full antialiased`}
     >
-      <body className="flex min-h-full flex-col">{children}</body>
+      <body className="flex min-h-full flex-col">
+        {children}
+        <ScrollToTop />
+      </body>
     </html>
   );
 }

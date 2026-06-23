@@ -2,6 +2,8 @@ import { notFound } from "next/navigation";
 import LanguageSwitcher from "@/components/language-switcher";
 import ScheduleSections from "@/components/schedule-sections";
 import Link from "next/link";
+import FocusMatchButton from "@/components/focus-match-button";
+import { getMatchKickoffSortValue } from "@/lib/format";
 import {
   getDictionary,
   getLocaleLanguageTag,
@@ -33,6 +35,19 @@ export default async function Home({ params }: HomeProps) {
   const dictionary = getDictionary(locale);
   const matches = await getWorldCupSchedule();
 
+  const nextMatch = matches.length > 0
+    ? [...matches]
+        .sort((a, b) => getMatchKickoffSortValue(a) - getMatchKickoffSortValue(b))
+        .find((m) => {
+          const status = m.status?.toUpperCase();
+          const isFinished =
+            status === "FINISHED" ||
+            status === "MATCH FINISHED" ||
+            status === "ENDED";
+          return !isFinished;
+        })
+    : null;
+
   return (
     <main className="min-h-dvh bg-slate-950 px-4 py-6 text-slate-100 sm:px-6 lg:px-8">
       <div className="mx-auto flex w-full max-w-7xl flex-col gap-8">
@@ -47,7 +62,10 @@ export default async function Home({ params }: HomeProps) {
           </div>
 
           <div className="flex flex-col gap-3 sm:items-end">
-            <div className="flex items-center gap-4">
+            <div className="flex flex-wrap items-center gap-4">
+              {nextMatch && (
+                <FocusMatchButton matchId={nextMatch.id} locale={locale} />
+              )}
               <Link
                 href={getLocalizedPath(locale, "/fifa-rankings")}
                 className="text-sm font-semibold text-emerald-400 hover:text-emerald-300 transition-colors"

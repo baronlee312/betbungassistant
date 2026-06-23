@@ -120,6 +120,8 @@ async function main() {
   console.log("⏳ Waiting 10 seconds to ensure fixtures load...");
   await new Promise((r) => setTimeout(r, 10000));
 
+  console.log("Current page URL:", page.url());
+
   // Extract all team IDs we found
   const teamIds = Array.from(teamsMap.keys());
   console.log(`Found ${teamIds.length} teams. Will now fetch past matches via in-page fetch...`);

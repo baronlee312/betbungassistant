@@ -4,7 +4,13 @@ import * as dotenv from 'dotenv';
 dotenv.config();
 
 const sqlite = new SQLiteClient();
-const postgres = new PostgresClient();
+const postgres = new PostgresClient({
+  datasources: {
+    db: {
+      url: process.env.DIRECT_URL || process.env.DATABASE_URL,
+    },
+  },
+});
 
 async function main() {
   console.log('Starting migration from SQLite to PostgreSQL...');

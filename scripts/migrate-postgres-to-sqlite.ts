@@ -4,7 +4,13 @@ import * as dotenv from 'dotenv';
 dotenv.config();
 
 const sqlite = new SQLiteClient();
-const postgres = new PostgresClient();
+const postgres = new PostgresClient({
+  datasources: {
+    db: {
+      url: process.env.DIRECT_URL || process.env.DATABASE_URL,
+    },
+  },
+});
 
 async function main() {
   console.log('🔄 Starting sync from PostgreSQL (Supabase) to SQLite (local dev.db)...');
@@ -19,8 +25,21 @@ async function main() {
   const pgTeams = await postgres.team.findMany();
   console.log(`Found ${pgTeams.length} teams in PostgreSQL.`);
 
-  console.log('Fetching matches from PostgreSQL...');
-  const pgMatches = await postgres.match.findMany();
+  console.log('Fetching matches from PostgreSQL in chunks...');
+  const pgMatches: any[] = [];
+  const fetchChunkSize = 200;
+  let skip = 0;
+  while (true) {
+    console.log(`  Fetching matches (skip=${skip}, take=${fetchChunkSize})...`);
+    const chunk = await postgres.match.findMany({
+      take: fetchChunkSize,
+      skip: skip,
+      orderBy: { id: "asc" }
+    });
+    if (chunk.length === 0) break;
+    pgMatches.push(...chunk);
+    skip += fetchChunkSize;
+  }
   console.log(`Found ${pgMatches.length} matches in PostgreSQL.`);
 
   console.log('Fetching FIFA rankings from PostgreSQL...');

@@ -4,7 +4,21 @@ import StealthPlugin from "puppeteer-extra-plugin-stealth";
 import { PrismaClient } from "@prisma/client";
 
 puppeteer.use(StealthPlugin());
-const prisma = new PrismaClient();
+
+const dbUrl = process.env.DATABASE_URL || process.env.DIRECT_URL;
+if (!dbUrl) {
+  console.error("❌ ERROR: Both DATABASE_URL and DIRECT_URL environment variables are missing or empty.");
+  console.error("Please ensure they are defined in your environment or GitHub Repository Secrets.");
+  process.exit(1);
+}
+
+const prisma = new PrismaClient({
+  datasources: {
+    db: {
+      url: dbUrl,
+    },
+  },
+});
 
 const TEAM_NAME_MAPPING: Record<string, string> = {
   "Korea Republic": "South Korea",

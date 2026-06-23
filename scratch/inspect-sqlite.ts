@@ -12,7 +12,10 @@ async function main() {
   });
 
   console.log(`Total matches in SQLite: ${matches.length}`);
-  const recent = matches.filter(m => m.date.toISOString().startsWith('2026-06-20'));
+  const recent = matches.filter(m => {
+    const d = m.date.toISOString().split('T')[0];
+    return d === '2026-06-20' || d === '2026-06-21';
+  });
   for (const m of recent) {
     console.log(`- ID: ${m.sofascoreId} | ${m.date.toISOString().split('T')[0]} | ${m.homeTeam.name} vs ${m.awayTeam.name} | Status: ${m.status} | Score: ${m.homeScore}-${m.awayScore} | HasStatsJson: ${m.statisticsJson !== null}`);
   }
