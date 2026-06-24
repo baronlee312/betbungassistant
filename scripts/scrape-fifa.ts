@@ -25,6 +25,7 @@ const TEAM_NAME_MAPPING: Record<string, string> = {
   "Korea DPR": "North Korea",
   "IR Iran": "Iran",
   "USA": "USA", // Already matches but good to have
+  "Congo DR": "DR Congo",
 };
 
 // Add global unhandled rejection handler to ignore non-critical Puppeteer cleanup errors
