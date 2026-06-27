@@ -304,13 +304,7 @@ export default function KnockoutBracket({
   return (
     <div className="relative w-full rounded-2xl border border-slate-900 bg-slate-950/60 overflow-hidden shadow-2xl">
       
-      {/* Help info */}
-      <div className="absolute bottom-4 left-4 z-10 hidden sm:flex items-center gap-2 bg-slate-900/90 border border-slate-800 px-3 py-1.5 rounded-full text-[11px] text-slate-400 font-semibold backdrop-blur shadow-md pointer-events-none">
-        <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7h12m0 0l-4-4m4 4l-4 4m0 6H4m0 0l4 4m-4-4l4-4" />
-        </svg>
-        <span>{isVi ? "Kéo chuột để di chuyển như Figma" : "Drag to pan scroll like Figma"}</span>
-      </div>
+
 
       {/* Zoom Controls */}
       <div className="absolute bottom-4 right-4 z-10 flex items-center gap-1 bg-slate-900/90 border border-slate-800 p-1 rounded-full text-xs font-semibold backdrop-blur shadow-lg">
