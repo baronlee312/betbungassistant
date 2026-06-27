@@ -170,42 +170,45 @@ export default function MatchDetailClient({
   return (
     <main className="min-h-dvh bg-slate-950 px-4 py-6 text-slate-100 sm:px-6 lg:px-8">
       <div className="mx-auto flex w-full max-w-7xl flex-col gap-6">
-        <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-          <div className="flex flex-wrap items-center gap-2">
-            <Link
-              href={getLocalizedPath(locale, "/")}
-              onClick={handleBackToSchedule}
-              className="w-fit rounded-lg border border-slate-800 px-3 py-2 text-sm font-semibold text-slate-300 transition-colors duration-200 hover:border-emerald-400 hover:text-emerald-200 focus:outline-none focus:ring-2 focus:ring-emerald-400 focus:ring-offset-2 focus:ring-offset-slate-950"
-            >
-              {dictionary.matchDetail.backToSchedule}
-            </Link>
-            <a
-              href={`https://www.google.com/search?q=${encodeURIComponent(`${match.homeTeam.name} vs ${match.awayTeam.name} ${match.date} ${match.league}`)}`}
-              target="_blank"
-              rel="noopener noreferrer"
-              className="flex items-center gap-1.5 rounded-lg border border-slate-800 px-3 py-2 text-sm font-semibold text-slate-400 transition-colors duration-200 hover:border-blue-400 hover:text-blue-200 focus:outline-none focus:ring-2 focus:ring-blue-400 focus:ring-offset-2 focus:ring-offset-slate-950"
-            >
-              <svg className="h-4 w-4" viewBox="0 0 24 24" fill="currentColor">
-                <path d="M12.48 10.92v3.28h7.84c-.24 1.84-.9 3.2-1.9 4.2-1.2 1.2-3.08 2.4-6.42 2.4-5.46 0-9.84-4.42-9.84-9.8S6.54 1.12 12 1.12c3.04 0 5.3 1.2 7.02 2.84l2.32-2.32C19.16 1.44 15.92 0 12 0 5.4 0 0 5.4 0 12s5.4 12 12 12c3.58 0 6.28-1.18 8.4-3.4 2.18-2.18 2.88-5.24 2.88-7.7 0-.74-.06-1.46-.18-2.12H12.48z" />
-              </svg>
-              Google
-            </a>
-            <a
-              href={`https://www.sofascore.com/event/${match.id}`}
-              target="_blank"
-              rel="noopener noreferrer"
-              className="flex items-center gap-1.5 rounded-lg border border-slate-800 px-3 py-2 text-sm font-semibold text-slate-400 transition-colors duration-200 hover:border-orange-400 hover:text-orange-200 focus:outline-none focus:ring-2 focus:ring-orange-400 focus:ring-offset-2 focus:ring-offset-slate-950"
-            >
-              <span className="flex h-4 w-4 items-center justify-center rounded-sm bg-orange-500 text-[10px] font-bold text-white">S</span>
-              Sofascore
-            </a>
+        {/* Compact, Sticky Header */}
+        <header className="sticky top-0 z-50 -mx-4 px-4 py-3 sm:-mx-6 sm:px-6 lg:-mx-8 lg:px-8 bg-slate-950/85 backdrop-blur-md border-b border-slate-900/80 transition-all duration-200">
+          <div className="mx-auto max-w-7xl flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+            <div className="flex flex-wrap items-center gap-2">
+              <Link
+                href={getLocalizedPath(locale, "/")}
+                onClick={handleBackToSchedule}
+                className="w-fit rounded-lg border border-slate-800 px-3 py-2 text-sm font-semibold text-slate-300 transition-colors duration-200 hover:border-emerald-400 hover:text-emerald-200 focus:outline-none focus:ring-2 focus:ring-emerald-400 focus:ring-offset-2 focus:ring-offset-slate-950"
+              >
+                {dictionary.matchDetail.backToSchedule}
+              </Link>
+              <a
+                href={`https://www.google.com/search?q=${encodeURIComponent(`${match.homeTeam.name} vs ${match.awayTeam.name} ${match.date} ${match.league}`)}`}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="flex items-center gap-1.5 rounded-lg border border-slate-800 px-3 py-2 text-sm font-semibold text-slate-400 transition-colors duration-200 hover:border-blue-400 hover:text-blue-200 focus:outline-none focus:ring-2 focus:ring-blue-400 focus:ring-offset-2 focus:ring-offset-slate-950"
+              >
+                <svg className="h-4 w-4" viewBox="0 0 24 24" fill="currentColor">
+                  <path d="M12.48 10.92v3.28h7.84c-.24 1.84-.9 3.2-1.9 4.2-1.2 1.2-3.08 2.4-6.42 2.4-5.46 0-9.84-4.42-9.84-9.8S6.54 1.12 12 1.12c3.04 0 5.3 1.2 7.02 2.84l2.32-2.32C19.16 1.44 15.92 0 12 0 5.4 0 0 5.4 0 12s5.4 12 12 12c3.58 0 6.28-1.18 8.4-3.4 2.18-2.18 2.88-5.24 2.88-7.7 0-.74-.06-1.46-.18-2.12H12.48z" />
+                </svg>
+                Google
+              </a>
+              <a
+                href={`https://www.sofascore.com/event/${match.id}`}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="flex items-center gap-1.5 rounded-lg border border-slate-800 px-3 py-2 text-sm font-semibold text-slate-400 transition-colors duration-200 hover:border-orange-400 hover:text-orange-200 focus:outline-none focus:ring-2 focus:ring-orange-400 focus:ring-offset-2 focus:ring-offset-slate-950"
+              >
+                <span className="flex h-4 w-4 items-center justify-center rounded-sm bg-orange-500 text-[10px] font-bold text-white">S</span>
+                Sofascore
+              </a>
+            </div>
+            <LanguageSwitcher
+              currentPath={`/match/${match.id}`}
+              dictionary={dictionary.common}
+              locale={locale}
+            />
           </div>
-          <LanguageSwitcher
-            currentPath={`/match/${match.id}`}
-            dictionary={dictionary.common}
-            locale={locale}
-          />
-        </div>
+        </header>
 
         <section className="rounded-lg border border-slate-800 bg-slate-900/60 p-5 sm:p-6">
           <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">

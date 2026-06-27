@@ -23,6 +23,8 @@ export interface Dictionary {
     emptyTitle: string;
     emptyDescription: string;
     footer: string;
+    groupStage: string;
+    knockoutStage: string;
   };
   schedule: {
     ariaLabel: string;
@@ -141,6 +143,8 @@ const dictionaries: Record<Locale, Dictionary> = {
         "TheSportsDB did not return World Cup {season} events for the free endpoint. This view will populate as soon as events are available from the API.",
       footer:
         "Powered by TheSportsDB v1 free API. Season fixtures are limited to the free-tier response window.",
+      groupStage: "Group Stage",
+      knockoutStage: "Knockout Stage",
     },
     schedule: {
       ariaLabel: "World Cup match schedule",
@@ -260,6 +264,8 @@ const dictionaries: Record<Locale, Dictionary> = {
         "TheSportsDB chưa trả về sự kiện World Cup {season} cho endpoint miễn phí. Trang này sẽ tự hiển thị khi API có dữ liệu.",
       footer:
         "Dữ liệu từ TheSportsDB v1 free API. Lịch theo mùa bị giới hạn trong phạm vi phản hồi của gói miễn phí.",
+      groupStage: "Vòng bảng",
+      knockoutStage: "Vòng loại trực tiếp",
     },
     schedule: {
       ariaLabel: "Lịch thi đấu World Cup",

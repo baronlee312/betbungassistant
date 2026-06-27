@@ -7,7 +7,7 @@ import { unstable_cache } from "next/cache";
 
 export const WORLD_CUP_LEAGUE_ID = "4429";
 export const WORLD_CUP_SEASON = "2026";
-export const FREE_TIER_SCHEDULE_LIMIT = 64; // Can be full WC length now
+export const FREE_TIER_SCHEDULE_LIMIT = 120; // Expanded to support World Cup 2026 (104 matches)
 export const FREE_TIER_RECENT_EVENTS_LIMIT = 15; // Increased to 15!
 export const FREE_TIER_LIMIT_REASON = "";
 

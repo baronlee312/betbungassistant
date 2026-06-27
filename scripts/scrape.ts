@@ -122,6 +122,58 @@ async function main() {
 
   console.log("Current page URL:", page.url());
 
+  // Programmatically fetch tournament events (both next and last)
+  console.log("Fetching tournament upcoming and past events programmatically...");
+  for (const type of ["next", "last"]) {
+    let hasMore = true;
+    let pageIdx = 0;
+    while (hasMore) {
+      console.log(`Fetching tournament events/${type}/${pageIdx}...`);
+      try {
+        const json = await page.evaluate(async (seasonId, typeStr, idx, token) => {
+          try {
+            const response = await fetch(`https://www.sofascore.com/api/v1/unique-tournament/16/season/${seasonId}/events/${typeStr}/${idx}`, {
+              headers: {
+                "x-requested-with": token
+              }
+            });
+            if (!response.ok) {
+              if (response.status === 404) return { events: [] };
+              return { error: `HTTP ${response.status}: ${response.statusText}` };
+            }
+            return await response.json();
+          } catch (e: any) {
+            return { error: e?.message || String(e) };
+          }
+        }, 58210, type, pageIdx, sofascoreToken);
+
+        if (json && json.events && json.events.length > 0) {
+          console.log(`  ✅ Fetched ${json.events.length} tournament matches from ${type}/${pageIdx} (Total matches: ${matchesMap.size})`);
+          for (const event of json.events) {
+            if (event.tournament?.uniqueTournament?.id === 16) {
+              event.isWorldCup2026 = true;
+            }
+            if (event.startTimestamp * 1000 > filterStartTime) {
+              matchesMap.set(event.id, event);
+              if (event.homeTeam) teamsMap.set(event.homeTeam.id, event.homeTeam);
+              if (event.awayTeam) teamsMap.set(event.awayTeam.id, event.awayTeam);
+            }
+          }
+          pageIdx++;
+          if (json.events.length < 30) {
+            hasMore = false;
+          }
+        } else {
+          hasMore = false;
+        }
+      } catch (e) {
+        console.error(`Error fetching tournament events: ${e}`);
+        hasMore = false;
+      }
+      await new Promise((r) => setTimeout(r, 1000));
+    }
+  }
+
   // Extract all team IDs we found
   const teamIds = Array.from(teamsMap.keys());
   console.log(`Found ${teamIds.length} teams. Will now fetch past matches via in-page fetch...`);
@@ -363,6 +415,8 @@ async function main() {
     await prisma.match.upsert({
       where: { sofascoreId: match.id },
       update: {
+        homeTeamId: homeTeamDbId,
+        awayTeamId: awayTeamDbId,
         homeScore,
         awayScore,
         status: statusStr,
@@ -445,6 +499,47 @@ async function main() {
     ]);
   } catch (e) {
     console.error("Browser close timed out or failed:", e);
+  }
+
+  // 1. Sync local SQLite database automatically
+  console.log("\n🔄 Automatically synchronizing PostgreSQL updates to local SQLite database...");
+  try {
+    const { execSync } = require("child_process");
+    execSync("npx tsx scripts/migrate-postgres-to-sqlite.ts", { stdio: "inherit" });
+    console.log("✅ Local SQLite database synchronized successfully!");
+  } catch (syncError) {
+    console.error("⚠️ Failed to auto-sync to SQLite:", syncError);
+  }
+
+  // 2. Revalidate Next.js cache on local and production servers
+  console.log("\n⚡ Revalidating Next.js schedule cache...");
+  const urlsToRevalidate = [
+    "http://localhost:3000/api/revalidate?tag=world-cup-schedule",
+    "http://localhost:3001/api/revalidate?tag=world-cup-schedule",
+  ];
+  
+  if (process.env.PRODUCTION_URL) {
+    const prodUrl = process.env.PRODUCTION_URL.endsWith("/") ? process.env.PRODUCTION_URL.slice(0, -1) : process.env.PRODUCTION_URL;
+    urlsToRevalidate.push(`${prodUrl}/api/revalidate?tag=world-cup-schedule`);
+  }
+  if (process.env.APP_URL) {
+    const appUrl = process.env.APP_URL.endsWith("/") ? process.env.APP_URL.slice(0, -1) : process.env.APP_URL;
+    urlsToRevalidate.push(`${appUrl}/api/revalidate?tag=world-cup-schedule`);
+  }
+
+  for (const url of urlsToRevalidate) {
+    try {
+      console.log(`Sending revalidate request to: ${url}`);
+      const res = await fetch(url);
+      if (res.ok) {
+        const json = await res.json();
+        console.log(`  ✅ Revalidated successfully: ${JSON.stringify(json)}`);
+      } else {
+        console.log(`  ⚠️ Revalidate failed (status ${res.status}): ${res.statusText}`);
+      }
+    } catch (err: any) {
+      console.log(`  ℹ️ Could not contact revalidation server at ${url}: ${err.message}`);
+    }
   }
 
   await prisma.$disconnect();
