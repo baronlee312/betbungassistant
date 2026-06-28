@@ -48,8 +48,10 @@ export default async function Home({ params, searchParams }: HomeProps) {
         return m.date && m.date >= "2026-06-28" && !isNaN(mid) && mid >= 12812000 && mid <= 12814000;
       })
     : allMatches.filter((m) => {
-        // Group stage matches run up to June 27, 2026
-        return m.date && m.date <= "2026-06-27";
+        // Group stage matches are all matches that are not knockout matches
+        const mid = parseInt(m.id, 10);
+        const isMatchKnockout = m.date && m.date >= "2026-06-28" && !isNaN(mid) && mid >= 12812000 && mid <= 12814000;
+        return !isMatchKnockout;
       });
 
   const nextMatch = allMatches.length > 0

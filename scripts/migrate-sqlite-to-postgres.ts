@@ -21,11 +21,11 @@ async function main() {
     process.exit(1);
   }
 
-  // 1. Truncate tables on Postgres to avoid duplicates
-  console.log('Truncating tables on PostgreSQL (Supabase)...');
-  await postgres.$executeRawUnsafe(`TRUNCATE TABLE "Match" CASCADE`);
-  await postgres.$executeRawUnsafe(`TRUNCATE TABLE "Team" CASCADE`);
-  await postgres.$executeRawUnsafe(`TRUNCATE TABLE "FifaRanking" CASCADE`);
+  // 1. Clear tables on Postgres to avoid duplicates
+  console.log('Clearing tables on PostgreSQL (Supabase)...');
+  await postgres.$executeRawUnsafe(`DELETE FROM "Match"`);
+  await postgres.$executeRawUnsafe(`DELETE FROM "Team"`);
+  await postgres.$executeRawUnsafe(`DELETE FROM "FifaRanking"`);
 
   // 2. Migrate Teams
   console.log('Fetching teams from SQLite...');
