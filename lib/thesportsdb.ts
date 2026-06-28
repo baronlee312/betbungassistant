@@ -77,7 +77,10 @@ export const getWorldCupSchedule = unstable_cache(
     }
   },
   ["world-cup-schedule"],
-  { revalidate: 300 } // 5 minutes cache
+  {
+    tags: ["world-cup-schedule"],
+    revalidate: 300,
+  }
 );
 
 export async function getEventById(matchId: string): Promise<NormalizedMatch | null> {
@@ -106,7 +109,10 @@ export async function getEventById(matchId: string): Promise<NormalizedMatch | n
       }
     },
     [`match-by-id-${matchId}`],
-    { revalidate: 300 } // 5 minutes cache
+    {
+      tags: [`match-by-id-${matchId}`, "world-cup-schedule"],
+      revalidate: 300,
+    }
   );
 
   return fetchEvent(matchId);
@@ -146,7 +152,10 @@ export async function getTeamRecentEvents(teamId: string): Promise<NormalizedMat
       }
     },
     [`team-recent-events-${teamId}`],
-    { revalidate: 600 } // 10 minutes cache
+    {
+      tags: [`team-recent-events-${teamId}`, "world-cup-schedule"],
+      revalidate: 600,
+    }
   );
 
   return fetchRecent(teamId);
@@ -166,7 +175,10 @@ export const getFifaRankings = unstable_cache(
     }
   },
   ["fifa-rankings"],
-  { revalidate: 3600 } // 1 hour cache
+  {
+    tags: ["fifa-rankings"],
+    revalidate: 3600,
+  }
 );
 
 export async function getFifaRankingByTeam(teamName: string) {
@@ -182,7 +194,10 @@ export async function getFifaRankingByTeam(teamName: string) {
       }
     },
     [`fifa-ranking-team-${teamName}`],
-    { revalidate: 3600 } // 1 hour cache
+    {
+      tags: [`fifa-ranking-team-${teamName}`, "fifa-rankings"],
+      revalidate: 3600,
+    }
   );
 
   return fetchRanking(teamName);
