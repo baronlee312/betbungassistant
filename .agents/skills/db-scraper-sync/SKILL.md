@@ -6,6 +6,27 @@ description: Match scraper & DB synchronizer. Scrapes Sofascore fixtures with li
 
 Comprehensive workflow and toolset to scrape Sofascore match data, fetch deep statistics, handle cookies/security challenges, handle live/completed match state transitions using a sliding-window buffer, and synchronize databases.
 
+## Mandated Agent Execution Workflow
+Whenever this skill is triggered (via `/db-scraper-sync` or reference), the agent must automatically perform the following steps in sequence:
+1. **Scrape Latest Data:** Run the manual scraper to fetch the latest match data/stats and save them directly to PostgreSQL (production Supabase):
+   ```bash
+   npm run scrape
+   ```
+2. **Push SQLite to Production:** Migrate any new local SQLite changes/rankings up to PostgreSQL (production Supabase):
+   ```bash
+   npx tsx scripts/migrate-sqlite-to-postgres.ts
+   ```
+3. **Sync Postgres to SQLite:** Pull the complete PostgreSQL state back to the local SQLite database (`dev.db`):
+   ```bash
+   npm run sync-dev-db
+   ```
+4. **Verify both Databases:** Run both inspection scripts to verify records match:
+   ```bash
+   npx tsx scratch/inspect-matches.ts
+   npx tsx scratch/inspect-sqlite.ts
+   ```
+5. **Summarize:** Provide a concise summary of the synced matches, scores, and status.
+
 ## How to Use This Skill
 
 ### Step 1: Running the Scraper
