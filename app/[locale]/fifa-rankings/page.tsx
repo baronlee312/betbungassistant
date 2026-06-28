@@ -68,7 +68,7 @@ export default async function FifaRankingsPage({ params }: FifaRankingsPageProps
               <p className="text-sm font-medium text-slate-300">
                 {new Intl.DateTimeFormat(locale === 'vi' ? 'vi-VN' : 'en-US', {
                   dateStyle: 'long'
-                }).format(lastUpdated)}
+                }).format(new Date(lastUpdated))}
               </p>
             </div>
           )}

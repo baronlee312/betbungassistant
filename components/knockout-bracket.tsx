@@ -21,15 +21,33 @@ interface KnockoutBracketProps {
 
 // Fixed Bracket tree match sequence (derived from Sofascore/FIFA bracket mapping)
 const ROUND_OF_32_ORDER = [
-  "12813000", "12813014", "12813012", "12812995", // Group 1 -> QF 1
-  "12812992", "12813004", "12812999", "12813001", // Group 2 -> QF 3
-  "12812997", "12813011", "12813020", "12813013", // Group 3 -> QF 2
-  "12813018", "12813019", "12812998", "12812989"  // Group 4 -> QF 4
+  "12813014", // Match 74: Germany vs Paraguay
+  "12812995", // Match 77: France vs Sweden
+  "12813000", // Match 73: South Africa vs Canada
+  "12812998", // Match 75: Netherlands vs Morocco
+  "12812997", // Match 83: 2K vs 2L
+  "12813004", // Match 84: Spain vs 2J
+  "12812992", // Match 81: USA vs Bosnia & Herzegovina
+  "12813013", // Match 82: Belgium vs 3A/3E/3H/3I/3J
+  "12813012", // Match 76: Brazil vs Japan
+  "12812989", // Match 78: Côte d'Ivoire vs Norway
+  "12813001", // Match 79: Mexico vs 3C/3E/3F/3H/3I
+  "12813020", // Match 80: 1L vs 3E/3H/3I/3J/3K
+  "12812999", // Match 86: Argentina vs Cabo Verde
+  "12813018", // Match 88: Australia vs Egypt
+  "12813019", // Match 85: Switzerland vs 3E/3F/3G/3I/3J
+  "12813011"  // Match 87: 1K vs 3D/3E/3I/3J/3L
 ];
 
 const ROUND_OF_16_ORDER = [
-  "12813009", "12813010", "12812990", "12812993",
-  "12813002", "12813007", "12812991", "12813006"
+  "12813010", // Match 89 (W74 vs W77)
+  "12813009", // Match 90 (W73 vs W75)
+  "12812990", // Match 93 (W83 vs W84)
+  "12813002", // Match 94 (W81 vs W82)
+  "12813006", // Match 91 (W76 vs W78)
+  "12813007", // Match 92 (W79 vs W80)
+  "12812993", // Match 95 (W86 vs W88)
+  "12812991"  // Match 96 (W85 vs W87)
 ];
 
 const QUARTER_FINALS_ORDER = [
@@ -43,6 +61,35 @@ const SEMI_FINALS_ORDER = [
 const FINALS_ORDER = [
   "12813005", "12813003" // Final, 3rd Place Match
 ];
+
+const MATCH_NUMBER_MAP: Record<string, number> = {
+  // Round of 32
+  "12813000": 73,
+  "12813014": 74,
+  "12812998": 75,
+  "12813012": 76,
+  "12812995": 77,
+  "12812989": 78,
+  "12813001": 79,
+  "12813020": 80,
+  "12812992": 81,
+  "12813013": 82,
+  "12812997": 83,
+  "12813004": 84,
+  "12813019": 85,
+  "12812999": 86,
+  "12813011": 87,
+  "12813018": 88,
+  // Round of 16
+  "12813010": 89,
+  "12813009": 90,
+  "12813006": 91,
+  "12813007": 92,
+  "12812990": 93,
+  "12813002": 94,
+  "12812993": 95,
+  "12812991": 96,
+};
 
 function subscribeToTimeZoneChange() {
   return () => undefined;
@@ -135,7 +182,7 @@ export default function KnockoutBracket({
     const match = matchMap.get(matchId);
     if (!match) {
       return (
-        <div className="w-[260px] h-[124px] bg-slate-950/20 border border-slate-900/60 rounded-xl flex items-center justify-center text-xs text-slate-600">
+        <div key={matchId} className="w-[260px] h-[124px] bg-slate-950/20 border border-slate-900/60 rounded-xl flex items-center justify-center text-xs text-slate-600">
           Match TBD ({matchId})
         </div>
       );
@@ -375,7 +422,7 @@ export default function KnockoutBracket({
               {isVi ? "Vòng 32 đội" : "Round of 32"}
             </div>
             <div className="flex-1 flex flex-col justify-around py-4 h-[2600px] relative">
-              {ROUND_OF_32_ORDER.map((id, idx) => renderMatchCard(id, `${isVi ? "Trận" : "Match"} ${73 + idx}`, 0))}
+              {ROUND_OF_32_ORDER.map((id) => renderMatchCard(id, `${isVi ? "Trận" : "Match"} ${MATCH_NUMBER_MAP[id] || ""}`, 0))}
             </div>
           </div>
 
@@ -385,7 +432,7 @@ export default function KnockoutBracket({
               {isVi ? "Vòng 16 đội" : "Round of 16"}
             </div>
             <div className="flex-1 flex flex-col justify-around py-4 h-[2600px] relative">
-              {ROUND_OF_16_ORDER.map((id, idx) => renderMatchCard(id, `${isVi ? "Trận" : "Match"} ${89 + idx}`, 1))}
+              {ROUND_OF_16_ORDER.map((id) => renderMatchCard(id, `${isVi ? "Trận" : "Match"} ${MATCH_NUMBER_MAP[id] || ""}`, 1))}
             </div>
           </div>
 
