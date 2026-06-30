@@ -178,6 +178,15 @@ export function formatScoreline(match: NormalizedMatch): string | null {
     return null;
   }
 
+  if (
+    match.homePenaltyScore !== null &&
+    match.homePenaltyScore !== undefined &&
+    match.awayPenaltyScore !== null &&
+    match.awayPenaltyScore !== undefined
+  ) {
+    return `${match.homeTeam.score}-${match.awayTeam.score} (${match.homePenaltyScore}-${match.awayPenaltyScore})`;
+  }
+
   return `${match.homeTeam.score}-${match.awayTeam.score}`;
 }
 
@@ -245,6 +254,16 @@ export function getTeamOutcome(
   const opponentScore = isHomeTeam ? match.awayTeam.score : match.homeTeam.score;
 
   if (teamScore === opponentScore) {
+    if (
+      match.homePenaltyScore !== null &&
+      match.homePenaltyScore !== undefined &&
+      match.awayPenaltyScore !== null &&
+      match.awayPenaltyScore !== undefined
+    ) {
+      const teamPenalty = isHomeTeam ? match.homePenaltyScore : match.awayPenaltyScore;
+      const opponentPenalty = isHomeTeam ? match.awayPenaltyScore : match.homePenaltyScore;
+      return teamPenalty > opponentPenalty ? "W" : "L";
+    }
     return "D";
   }
 

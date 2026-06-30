@@ -248,7 +248,9 @@ export default function MatchDetailClient({
               <p className="text-xs font-bold uppercase tracking-wider text-emerald-200">
                 {getStatusLabel(match, dictionary.status)}
               </p>
-              <p className="mt-2 font-mono text-4xl font-bold text-emerald-100">
+              <p className={`mt-2 font-mono font-bold text-emerald-100 ${
+                scoreline && scoreline.includes("(") ? "text-2xl sm:text-4xl" : "text-4xl"
+              }`}>
                 {scoreline ?? dictionary.matchDetail.versusShort}
               </p>
             </div>

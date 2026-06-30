@@ -80,6 +80,8 @@ async function main() {
           awayTeamId: m.awayTeamId,
           homeScore: m.homeScore,
           awayScore: m.awayScore,
+          homePenaltyScore: m.homePenaltyScore,
+          awayPenaltyScore: m.awayPenaltyScore,
           date: m.date,
           time: m.time,
           status: m.status,

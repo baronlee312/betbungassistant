@@ -75,7 +75,9 @@ export default function MatchCard({
           </div>
         </div>
 
-        <div className="flex h-14 min-w-24 items-center justify-center rounded-lg border border-slate-800 bg-black/35 px-4 font-mono text-2xl font-bold text-emerald-400">
+        <div className={`flex h-14 min-w-24 items-center justify-center rounded-lg border border-slate-800 bg-black/35 px-3 font-mono font-bold text-emerald-400 ${
+          scoreline && scoreline.includes("(") ? "text-base sm:text-lg" : "text-2xl"
+        }`}>
           {scoreline ?? dictionary.versusShort}
         </div>
 

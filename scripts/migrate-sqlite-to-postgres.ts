@@ -100,6 +100,8 @@ async function main() {
     } else if (
       pgMatch.homeScore !== sMatch.homeScore ||
       pgMatch.awayScore !== sMatch.awayScore ||
+      pgMatch.homePenaltyScore !== sMatch.homePenaltyScore ||
+      pgMatch.awayPenaltyScore !== sMatch.awayPenaltyScore ||
       pgMatch.status !== sMatch.status ||
       pgMatch.homePossession !== sMatch.homePossession ||
       pgMatch.awayPossession !== sMatch.awayPossession ||
@@ -140,6 +142,8 @@ async function main() {
           awayTeamId: match.awayTeamId,
           homeScore: match.homeScore,
           awayScore: match.awayScore,
+          homePenaltyScore: match.homePenaltyScore,
+          awayPenaltyScore: match.awayPenaltyScore,
           date: new Date(match.date),
           time: match.time,
           status: match.status,
@@ -178,6 +182,8 @@ async function main() {
         data: {
           homeScore: m.homeScore,
           awayScore: m.awayScore,
+          homePenaltyScore: m.homePenaltyScore,
+          awayPenaltyScore: m.awayPenaltyScore,
           status: m.status,
           time: m.time,
           date: new Date(m.date),

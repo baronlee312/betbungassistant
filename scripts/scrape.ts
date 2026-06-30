@@ -254,8 +254,30 @@ async function main() {
       continue;
     }
 
-    console.log(`Fetching stats for match ${match.id} (${match.homeTeam?.name} vs ${match.awayTeam?.name})...`);
+    console.log(`Fetching details & stats for match ${match.id} (${match.homeTeam?.name} vs ${match.awayTeam?.name})...`);
     try {
+      // 1. Fetch detailed event (to get penalties & normaltime scores)
+      const eventJson = await page.evaluate(async (mid, token) => {
+        try {
+          const response = await fetch(`https://www.sofascore.com/api/v1/event/${mid}`, {
+            headers: {
+              "x-requested-with": token
+            }
+          });
+          if (response.status === 404) return { event: null };
+          return await response.json();
+        } catch (e) {
+          return { error: String(e) };
+        }
+      }, match.id, sofascoreToken);
+
+      if (eventJson.event) {
+        match.homeScore = eventJson.event.homeScore;
+        match.awayScore = eventJson.event.awayScore;
+        console.log(`  ✅ Event details fetched. Score: ${match.homeScore?.current}-${match.awayScore?.current}, Penalties: ${match.homeScore?.penalties ?? 'none'}`);
+      }
+
+      // 2. Fetch stats
       const statsJson = await page.evaluate(async (mid, token) => {
         try {
           const response = await fetch(`https://www.sofascore.com/api/v1/event/${mid}/statistics`, {
@@ -281,7 +303,7 @@ async function main() {
     } catch (e) {
       console.log(`  ❌ Failed or no stats for match ${match.id}: ${e instanceof Error ? e.message : e}`);
     }
-    await new Promise((r) => setTimeout(r, 800));
+    await new Promise((r) => setTimeout(r, 1000));
   }
 
   console.log("🎉 Scraping complete. Saving to database...");
@@ -392,8 +414,19 @@ async function main() {
 
     const isFinished = match.status?.type === "finished";
     const statusStr = isFinished ? "FINISHED" : "TIMED";
-    const homeScore = isFinished ? match.homeScore?.current : null;
-    const awayScore = isFinished ? match.awayScore?.current : null;
+    
+    let homeScore = isFinished ? match.homeScore?.current : null;
+    let awayScore = isFinished ? match.awayScore?.current : null;
+    let homePenaltyScore: number | null = null;
+    let awayPenaltyScore: number | null = null;
+
+    if (isFinished && match.homeScore?.penalties !== undefined && match.homeScore?.penalties !== null) {
+      homePenaltyScore = match.homeScore.penalties;
+      awayPenaltyScore = match.awayScore?.penalties ?? 0;
+      homeScore = match.homeScore.normaltime ?? (match.homeScore.current - homePenaltyScore);
+      awayScore = match.awayScore?.normaltime ?? (match.awayScore?.current - awayPenaltyScore);
+    }
+
     const date = new Date(match.startTimestamp * 1000);
 
     const stats = match.statistics;
@@ -422,6 +455,8 @@ async function main() {
         awayTeamId: awayTeamDbId,
         homeScore,
         awayScore,
+        homePenaltyScore,
+        awayPenaltyScore,
         status: statusStr,
         date,
         league: leagueName,
@@ -451,6 +486,8 @@ async function main() {
         awayTeamId: awayTeamDbId,
         homeScore,
         awayScore,
+        homePenaltyScore,
+        awayPenaltyScore,
         status: statusStr,
         date,
         league: leagueName,

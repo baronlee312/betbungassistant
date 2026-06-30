@@ -56,6 +56,8 @@ export interface NormalizedMatch {
   progress: string | null;
   homeTeam: NormalizedTeam;
   awayTeam: NormalizedTeam;
+  homePenaltyScore?: number | null;
+  awayPenaltyScore?: number | null;
   statistics?: {
     possession: { home: number | null; away: number | null };
     shots: { home: number | null; away: number | null };

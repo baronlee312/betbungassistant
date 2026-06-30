@@ -40,6 +40,8 @@ function normalizeDbMatch(match: any): NormalizedMatch {
       score: match.awayScore,
       crestUrl: match.awayTeam.crestUrl,
     },
+    homePenaltyScore: match.homePenaltyScore,
+    awayPenaltyScore: match.awayPenaltyScore,
     statistics: {
       possession: { home: match.homePossession ?? null, away: match.awayPossession ?? null },
       shots: { home: match.homeShots ?? null, away: match.awayShots ?? null },

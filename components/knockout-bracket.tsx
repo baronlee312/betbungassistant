@@ -9,6 +9,7 @@ import {
   formatLocalMatchTime,
   formatMatchTimeZone,
   getMatchKickoffSortValue,
+  getLocalMatchDateKey,
 } from "@/lib/format";
 import { getLocalizedPath, type Dictionary, type Locale } from "@/lib/i18n";
 import type { NormalizedMatch } from "@/lib/thesportsdb-types";
@@ -127,6 +128,25 @@ export default function KnockoutBracket({
   
   const languageTag = locale === "vi" ? "vi-VN" : "en-US";
 
+  // Get today's local date key YYYY-MM-DD
+  const todayKey = useMemo(() => {
+    try {
+      const today = new Date();
+      const formatter = new Intl.DateTimeFormat("en-US", {
+        day: "2-digit",
+        month: "2-digit",
+        timeZone,
+        year: "numeric",
+      });
+      const parts = formatter.formatToParts(today);
+      const partMap = Object.fromEntries(parts.map((p) => [p.type, p.value]));
+      return `${partMap.year}-${partMap.month}-${partMap.day}`;
+    } catch {
+      const d = new Date();
+      return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
+    }
+  }, [timeZone]);
+
   // Find the next upcoming match (nearest in time)
   const nextMatch = useMemo(() => {
     if (!matches || matches.length === 0) return null;
@@ -211,7 +231,9 @@ export default function KnockoutBracket({
 
     const isNextMatch = nextMatch && match.id === nextMatch.id;
     const isLive = match.status && !["FINISHED", "MATCH FINISHED", "ENDED", "TIMED", "SCHEDULED", "POSTPONED", "CANCELLED", "TBD"].includes(match.status.toUpperCase());
-    const shouldHighlight = isNextMatch || isLive;
+    
+    const matchDateKey = getLocalMatchDateKey(match, timeZone);
+    const shouldHighlight = matchDateKey === todayKey || isLive;
 
     return (
       <div className="relative flex items-center h-[124px]" key={match.id}>
@@ -292,49 +314,71 @@ export default function KnockoutBracket({
             </div>
 
             {/* Teams and Scores */}
-            <div className="flex flex-col gap-2">
-              {/* Home Team */}
-              <div className="flex items-center justify-between min-w-0">
-                <div className="flex items-center gap-2 min-w-0">
-                  <span className="text-xl select-none" role="img" aria-label={match.homeTeam.name}>
-                    {getFlagEmoji(match.homeTeam.name)}
-                  </span>
-                  <span className="truncate text-xs font-bold text-slate-200 group-hover:text-slate-100 transition-colors">
-                    {match.homeTeam.name}
-                  </span>
-                </div>
-                <span className={`font-mono text-sm font-bold px-1.5 py-0.5 rounded ${
-                  isFinished 
-                    ? (match.homeTeam.score !== null && match.awayTeam.score !== null && match.homeTeam.score > match.awayTeam.score
-                        ? "text-emerald-400 bg-emerald-500/10" 
-                        : "text-slate-500 bg-slate-950/40")
-                    : "text-slate-600 bg-slate-950/20"
-                }`}>
-                  {match.homeTeam.score !== null ? match.homeTeam.score : "-"}
-                </span>
-              </div>
+            {(() => {
+              const homeScore = match.homeTeam.score;
+              const awayScore = match.awayTeam.score;
+              const homePenalty = match.homePenaltyScore;
+              const awayPenalty = match.awayPenaltyScore;
 
-              {/* Away Team */}
-              <div className="flex items-center justify-between min-w-0">
-                <div className="flex items-center gap-2 min-w-0">
-                  <span className="text-xl select-none" role="img" aria-label={match.awayTeam.name}>
-                    {getFlagEmoji(match.awayTeam.name)}
-                  </span>
-                  <span className="truncate text-xs font-bold text-slate-200 group-hover:text-slate-100 transition-colors">
-                    {match.awayTeam.name}
-                  </span>
+              const isHomeWinner = isFinished && homeScore !== null && awayScore !== null && (
+                homeScore > awayScore || (homeScore === awayScore && homePenalty !== null && homePenalty !== undefined && awayPenalty !== null && awayPenalty !== undefined && homePenalty > awayPenalty)
+              );
+              const isAwayWinner = isFinished && homeScore !== null && awayScore !== null && (
+                awayScore > homeScore || (homeScore === awayScore && homePenalty !== null && homePenalty !== undefined && awayPenalty !== null && awayPenalty !== undefined && awayPenalty > homePenalty)
+              );
+
+              return (
+                <div className="flex flex-col gap-2">
+                  {/* Home Team */}
+                  <div className="flex items-center justify-between min-w-0">
+                    <div className="flex items-center gap-2 min-w-0">
+                      <span className="text-xl select-none" role="img" aria-label={match.homeTeam.name}>
+                        {getFlagEmoji(match.homeTeam.name)}
+                      </span>
+                      <span className="truncate text-xs font-bold text-slate-200 group-hover:text-slate-100 transition-colors">
+                        {match.homeTeam.name}
+                      </span>
+                    </div>
+                    <span className={`font-mono text-xs font-semibold px-1.5 py-0.5 rounded flex items-center gap-1 ${
+                      isFinished 
+                        ? (isHomeWinner
+                            ? "text-emerald-400 bg-emerald-500/10 text-sm font-bold" 
+                            : "text-slate-500 bg-slate-950/40")
+                        : "text-slate-600 bg-slate-950/20"
+                    }`}>
+                      <span>{homeScore !== null ? homeScore : "-"}</span>
+                      {homePenalty !== null && homePenalty !== undefined && (
+                        <span className="text-[10px] text-slate-400 font-normal">({homePenalty})</span>
+                      )}
+                    </span>
+                  </div>
+
+                  {/* Away Team */}
+                  <div className="flex items-center justify-between min-w-0">
+                    <div className="flex items-center gap-2 min-w-0">
+                      <span className="text-xl select-none" role="img" aria-label={match.awayTeam.name}>
+                        {getFlagEmoji(match.awayTeam.name)}
+                      </span>
+                      <span className="truncate text-xs font-bold text-slate-200 group-hover:text-slate-100 transition-colors">
+                        {match.awayTeam.name}
+                      </span>
+                    </div>
+                    <span className={`font-mono text-xs font-semibold px-1.5 py-0.5 rounded flex items-center gap-1 ${
+                      isFinished 
+                        ? (isAwayWinner
+                            ? "text-emerald-400 bg-emerald-500/10 text-sm font-bold" 
+                            : "text-slate-500 bg-slate-950/40")
+                        : "text-slate-600 bg-slate-950/20"
+                    }`}>
+                      <span>{awayScore !== null ? awayScore : "-"}</span>
+                      {awayPenalty !== null && awayPenalty !== undefined && (
+                        <span className="text-[10px] text-slate-400 font-normal">({awayPenalty})</span>
+                      )}
+                    </span>
+                  </div>
                 </div>
-                <span className={`font-mono text-sm font-bold px-1.5 py-0.5 rounded ${
-                  isFinished 
-                    ? (match.homeTeam.score !== null && match.awayTeam.score !== null && match.awayTeam.score > match.homeTeam.score
-                        ? "text-emerald-400 bg-emerald-500/10" 
-                        : "text-slate-500 bg-slate-950/40")
-                    : "text-slate-600 bg-slate-950/20"
-                }`}>
-                  {match.awayTeam.score !== null ? match.awayTeam.score : "-"}
-                </span>
-              </div>
-            </div>
+              );
+            })()}
           </div>
         </Link>
 

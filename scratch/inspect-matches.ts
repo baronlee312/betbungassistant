@@ -26,7 +26,7 @@ async function main() {
   });
   console.log("Match List (Recent):");
   for (const m of recent) {
-    console.log(`- ID: ${m.sofascoreId} | ${m.date.toISOString().split('T')[0]} | ${m.homeTeam.name} vs ${m.awayTeam.name} | Status: ${m.status} | Score: ${m.homeScore}-${m.awayScore} | HasStatsJson: ${m.statisticsJson !== null}`);
+    console.log(`- ID: ${m.sofascoreId} | ${m.date.toISOString().split('T')[0]} | ${m.homeTeam.name} vs ${m.awayTeam.name} | Status: ${m.status} | Score: ${m.homeScore}-${m.awayScore} (pens: ${m.homePenaltyScore}-${m.awayPenaltyScore}) | HasStatsJson: ${m.statisticsJson !== null}`);
   }
 
   await prisma.$disconnect();

@@ -30,6 +30,8 @@ model Match {
   awayTeam    Team     @relation("AwayTeam", fields: [awayTeamId], references: [id])
   homeScore   Int?
   awayScore   Int?
+  homePenaltyScore  Int?
+  awayPenaltyScore  Int?
   date        DateTime
   time        String?
   status      String   // "FINISHED", "NOT_STARTED", etc.
