@@ -30,7 +30,7 @@ interface HomeProps {
 
 export default async function Home({ params, searchParams }: HomeProps) {
   const { locale: localeParam } = await params;
-  const { stage = "group" } = await searchParams;
+  const { stage = "knockout" } = await searchParams;
 
   if (!isLocale(localeParam)) {
     notFound();
