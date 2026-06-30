@@ -57,6 +57,9 @@ async function main() {
   } catch (e) {
     console.error("Failed to fetch last scrape time setting:", e);
   }
+  
+  // Disconnect to prevent connection pool idle timeout while Puppeteer page fetches run
+  await prisma.$disconnect();
 
   // Use a 24-hour buffer to handle matches that started before the last run but completed after
   const filterStartTime = Math.max(0, lastScrapeTime - 24 * 60 * 60 * 1000);
