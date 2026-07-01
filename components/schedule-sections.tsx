@@ -121,6 +121,46 @@ export default function ScheduleSections({
     [dateTimeDictionary, languageTag, matches, timeZone],
   );
 
+  const todayKey = useMemo(() => {
+    try {
+      const today = new Date();
+      const formatter = new Intl.DateTimeFormat("en-US", {
+        day: "2-digit",
+        month: "2-digit",
+        timeZone,
+        year: "numeric",
+      });
+      const parts = formatter.formatToParts(today);
+      const partMap = Object.fromEntries(parts.map((p) => [p.type, p.value]));
+      return `${partMap.year}-${partMap.month}-${partMap.day}`;
+    } catch {
+      const d = new Date();
+      return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
+    }
+  }, [timeZone]);
+
+  const tomorrowKey = useMemo(() => {
+    try {
+      const today = new Date();
+      const tomorrow = new Date(today);
+      tomorrow.setDate(today.getDate() + 1);
+      const formatter = new Intl.DateTimeFormat("en-US", {
+        day: "2-digit",
+        month: "2-digit",
+        timeZone,
+        year: "numeric",
+      });
+      const parts = formatter.formatToParts(tomorrow);
+      const partMap = Object.fromEntries(parts.map((p) => [p.type, p.value]));
+      return `${partMap.year}-${partMap.month}-${partMap.day}`;
+    } catch {
+      const d = new Date();
+      const tomorrow = new Date(d);
+      tomorrow.setDate(d.getDate() + 1);
+      return `${tomorrow.getFullYear()}-${String(tomorrow.getMonth() + 1).padStart(2, "0")}-${String(tomorrow.getDate()).padStart(2, "0")}`;
+    }
+  }, [timeZone]);
+
   const nextMatch = useMemo(() => {
     if (!matches || matches.length === 0) return null;
     // Sort matches by kickoff time ascending
@@ -165,35 +205,70 @@ export default function ScheduleSections({
       </div>
 
       <div className="space-y-10">
-        {scheduleDays.map((section) => (
-          <section key={section.dateKey} className="space-y-4">
-            <div className="flex items-center justify-between gap-4">
-              <h3 className="text-xl font-semibold text-slate-50">{section.dateLabel}</h3>
-              <span className="rounded-full border border-slate-800 px-3 py-1 text-xs font-medium text-slate-400">
-                {section.matches.length}{" "}
-                {section.matches.length === 1
-                  ? dictionary.matchSingular
-                  : dictionary.matchPlural}
-              </span>
-            </div>
+        {scheduleDays.map((section) => {
+          const isToday = section.dateKey === todayKey;
+          const isTomorrow = section.dateKey === tomorrowKey;
+          
+          return (
+            <section key={section.dateKey} className="space-y-4">
+              <div className="flex items-center justify-between gap-4">
+                <div className="flex flex-wrap items-center gap-3">
+                  <h3 className={`text-xl font-semibold ${
+                    isToday 
+                      ? "text-emerald-400" 
+                      : isTomorrow 
+                      ? "text-orange-400" 
+                      : "text-slate-50"
+                  }`}>
+                    {section.dateLabel}
+                  </h3>
+                  {isToday && (
+                    <span className="rounded bg-emerald-400/10 border border-emerald-400/20 px-2.5 py-0.5 text-xs font-bold uppercase tracking-wider text-emerald-300">
+                      {locale === "vi" ? "Hôm nay" : "Today"}
+                    </span>
+                  )}
+                  {isTomorrow && (
+                    <span className="rounded bg-orange-400/10 border border-orange-400/20 px-2.5 py-0.5 text-xs font-bold uppercase tracking-wider text-orange-300">
+                      {locale === "vi" ? "Ngày mai" : "Tomorrow"}
+                    </span>
+                  )}
+                </div>
+                <span className="rounded-full border border-slate-800 px-3 py-1 text-xs font-medium text-slate-400">
+                  {section.matches.length}{" "}
+                  {section.matches.length === 1
+                    ? dictionary.matchSingular
+                    : dictionary.matchPlural}
+                </span>
+              </div>
 
-            <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
-              {section.matches.map((localizedMatch) => (
-                <MatchCard
-                  id={`match-${localizedMatch.match.id}`}
-                  dictionary={matchCardDictionary}
-                  href={getLocalizedPath(locale, `/match/${localizedMatch.match.id}`)}
-                  key={localizedMatch.match.id}
-                  match={localizedMatch.match}
-                  statusDictionary={statusDictionary}
-                  dateLabel={localizedMatch.dateLabel}
-                  timeLabel={localizedMatch.timeLabel}
-                  timeZoneLabel={localizedMatch.timeZoneLabel}
-                />
-              ))}
-            </div>
-          </section>
-        ))}
+              <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
+                {section.matches.map((localizedMatch) => {
+                  const isLive = localizedMatch.match.status && !["FINISHED", "MATCH FINISHED", "ENDED", "TIMED", "SCHEDULED", "POSTPONED", "CANCELLED", "TBD"].includes(localizedMatch.match.status.toUpperCase());
+                  const highlightMode = (localizedMatch.dateKey === todayKey || isLive)
+                    ? "today"
+                    : localizedMatch.dateKey === tomorrowKey
+                    ? "tomorrow"
+                    : "none";
+                    
+                  return (
+                    <MatchCard
+                      id={`match-${localizedMatch.match.id}`}
+                      dictionary={matchCardDictionary}
+                      href={getLocalizedPath(locale, `/match/${localizedMatch.match.id}`)}
+                      key={localizedMatch.match.id}
+                      match={localizedMatch.match}
+                      statusDictionary={statusDictionary}
+                      dateLabel={localizedMatch.dateLabel}
+                      timeLabel={localizedMatch.timeLabel}
+                      timeZoneLabel={localizedMatch.timeZoneLabel}
+                      highlightMode={highlightMode}
+                    />
+                  );
+                })}
+              </div>
+            </section>
+          );
+        })}
       </div>
     </section>
   );

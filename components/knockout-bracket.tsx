@@ -147,6 +147,29 @@ export default function KnockoutBracket({
     }
   }, [timeZone]);
 
+  // Get tomorrow's local date key YYYY-MM-DD
+  const tomorrowKey = useMemo(() => {
+    try {
+      const today = new Date();
+      const tomorrow = new Date(today);
+      tomorrow.setDate(today.getDate() + 1);
+      const formatter = new Intl.DateTimeFormat("en-US", {
+        day: "2-digit",
+        month: "2-digit",
+        timeZone,
+        year: "numeric",
+      });
+      const parts = formatter.formatToParts(tomorrow);
+      const partMap = Object.fromEntries(parts.map((p) => [p.type, p.value]));
+      return `${partMap.year}-${partMap.month}-${partMap.day}`;
+    } catch {
+      const d = new Date();
+      const tomorrow = new Date(d);
+      tomorrow.setDate(d.getDate() + 1);
+      return `${tomorrow.getFullYear()}-${String(tomorrow.getMonth() + 1).padStart(2, "0")}-${String(tomorrow.getDate()).padStart(2, "0")}`;
+    }
+  }, [timeZone]);
+
   // Find the next upcoming match (nearest in time)
   const nextMatch = useMemo(() => {
     if (!matches || matches.length === 0) return null;
@@ -234,6 +257,7 @@ export default function KnockoutBracket({
     
     const matchDateKey = getLocalMatchDateKey(match, timeZone);
     const shouldHighlight = matchDateKey === todayKey || isLive;
+    const isTomorrow = matchDateKey === tomorrowKey && !isLive && matchDateKey !== todayKey;
 
     return (
       <div className="relative flex items-center h-[124px]" key={match.id}>
@@ -272,11 +296,13 @@ export default function KnockoutBracket({
           <div className={`p-3.5 backdrop-blur-md rounded-xl border transition-all duration-200 ${
             shouldHighlight
               ? "bg-slate-900/90 border-emerald-400 shadow-xl shadow-emerald-500/15 ring-1 ring-emerald-400/40 -translate-y-0.5"
+              : isTomorrow
+              ? "bg-slate-900/90 border-orange-400 shadow-xl shadow-orange-500/15 ring-1 ring-orange-400/40 -translate-y-0.5"
               : "bg-slate-900/60 border-slate-800/80 shadow-lg hover:border-emerald-500/40 hover:shadow-md hover:shadow-emerald-500/5 hover:-translate-y-0.5"
           }`}>
             {/* Card Header: Round label or match date */}
             <div className="flex items-center justify-between text-[10px] font-semibold text-slate-550 uppercase tracking-wider mb-1.5">
-              <div className="flex items-center gap-1.5">
+              <div className="flex flex-wrap items-center gap-1.5">
                 <span>{customLabel || `ID: ${match.id}`}</span>
                 {isLive && (
                   <span className="relative flex h-1.5 w-1.5">
@@ -289,12 +315,24 @@ export default function KnockoutBracket({
                     {locale === "vi" ? "SẮP ĐẤU" : "NEXT"}
                   </span>
                 )}
+                {matchDateKey === todayKey && !isLive && (
+                  <span className="px-1.5 py-0.5 rounded bg-emerald-400/20 border border-emerald-400/30 text-emerald-300 text-[8px] font-bold uppercase tracking-wider scale-90 origin-left">
+                    {locale === "vi" ? "HÔM NAY" : "TODAY"}
+                  </span>
+                )}
+                {isTomorrow && (
+                  <span className="px-1.5 py-0.5 rounded bg-orange-400/20 border border-orange-400/30 text-orange-300 text-[8px] font-bold uppercase tracking-wider scale-90 origin-left">
+                    {locale === "vi" ? "NGÀY MAI" : "TOMORROW"}
+                  </span>
+                )}
               </div>
               <span className={`px-2 py-0.5 rounded-full text-[9px] font-bold ${
                 isLive
                   ? "bg-red-500/15 text-red-400 font-extrabold"
                   : shouldHighlight
                   ? "bg-emerald-400/20 text-emerald-300"
+                  : isTomorrow
+                  ? "bg-orange-400/20 text-orange-300"
                   : isFinished
                   ? "bg-slate-800 text-slate-400"
                   : "bg-emerald-500/10 text-emerald-400"

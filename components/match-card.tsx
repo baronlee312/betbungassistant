@@ -18,6 +18,7 @@ interface MatchCardProps {
   dateLabel?: string;
   timeLabel?: string;
   timeZoneLabel?: string;
+  highlightMode?: "today" | "tomorrow" | "none";
 }
 
 const defaultDictionary: Dictionary["matchCard"] = {
@@ -37,6 +38,7 @@ export default function MatchCard({
   dateLabel,
   timeLabel,
   timeZoneLabel,
+  highlightMode = "none",
 }: MatchCardProps) {
   const scoreline = formatScoreline(match);
   const status = getStatusLabel(match, statusDictionary);
@@ -52,7 +54,13 @@ export default function MatchCard({
       id={id}
       href={href ?? `/match/${match.id}`}
       aria-label={ariaLabel}
-      className="group flex min-h-56 cursor-pointer flex-col justify-between rounded-lg border border-slate-800 bg-slate-950/80 p-5 shadow-2xl shadow-black/20 transition-colors duration-200 hover:border-emerald-400/70 hover:bg-slate-900 focus:outline-none focus:ring-2 focus:ring-emerald-400 focus:ring-offset-2 focus:ring-offset-slate-950"
+      className={`group flex min-h-56 cursor-pointer flex-col justify-between rounded-lg border p-5 shadow-2xl transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-offset-slate-950 ${
+        highlightMode === "today"
+          ? "border-emerald-400 bg-slate-900/95 shadow-emerald-500/10 ring-1 ring-emerald-400/30 -translate-y-0.5 focus:ring-emerald-400"
+          : highlightMode === "tomorrow"
+          ? "border-orange-400 bg-slate-900/95 shadow-orange-500/10 ring-1 ring-orange-400/30 -translate-y-0.5 focus:ring-orange-400"
+          : "border-slate-800 bg-slate-950/80 shadow-black/20 hover:border-emerald-400/70 hover:bg-slate-900 focus:ring-emerald-400"
+      }`}
     >
       <div className="flex items-center justify-between gap-3 text-sm font-medium uppercase text-slate-300">
         <span>{displayDate}</span>
@@ -98,7 +106,13 @@ export default function MatchCard({
         <span className="text-sm text-slate-300">
           {match.venue ?? dictionary.venueTbd}
         </span>
-        <span className="rounded-full bg-emerald-400/15 px-3 py-1.5 text-xs font-bold uppercase tracking-wider text-emerald-300">
+        <span className={`rounded-full px-3 py-1.5 text-xs font-bold uppercase tracking-wider ${
+          highlightMode === "today"
+            ? "bg-emerald-400/25 text-emerald-200"
+            : highlightMode === "tomorrow"
+            ? "bg-orange-400/25 text-orange-200"
+            : "bg-emerald-400/15 text-emerald-300"
+        }`}>
           {status}
         </span>
       </div>
