@@ -119,6 +119,30 @@ export default function KnockoutBracket({
   const [scrollTop, setScrollTop] = useState(0);
   const [dragMoved, setDragMoved] = useState(false);
   const [zoom, setZoom] = useState(1.0);
+  const [isFullscreen, setIsFullscreen] = useState(false);
+
+  // Listen for Escape key to exit fullscreen
+  React.useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === "Escape" && isFullscreen) {
+        setIsFullscreen(false);
+      }
+    };
+    window.addEventListener("keydown", handleKeyDown);
+    return () => window.removeEventListener("keydown", handleKeyDown);
+  }, [isFullscreen]);
+
+  // Disable body scroll when fullscreen is active
+  React.useEffect(() => {
+    if (isFullscreen) {
+      document.body.style.overflow = "hidden";
+    } else {
+      document.body.style.overflow = "";
+    }
+    return () => {
+      document.body.style.overflow = "";
+    };
+  }, [isFullscreen]);
 
   const timeZone = useSyncExternalStore(
     subscribeToTimeZoneChange,
@@ -250,7 +274,6 @@ export default function KnockoutBracket({
     const timeZoneLabel = formatMatchTimeZone(match, timeZone);
 
     const isFinal = matchId === "12813005";
-    const isThirdPlace = matchId === "12813003";
 
     const isNextMatch = nextMatch && match.id === nextMatch.id;
     const isLive = match.status && !["FINISHED", "MATCH FINISHED", "ENDED", "TIMED", "SCHEDULED", "POSTPONED", "CANCELLED", "TBD"].includes(match.status.toUpperCase());
@@ -431,9 +454,28 @@ export default function KnockoutBracket({
   const isVi = locale === "vi";
 
   return (
-    <div className="relative w-full rounded-2xl border border-slate-900 bg-slate-950/60 overflow-hidden shadow-2xl">
-      
-
+    <div className={isFullscreen 
+      ? "fixed inset-0 z-[9999] w-screen h-screen bg-slate-950 rounded-none flex flex-col overflow-hidden"
+      : "relative w-full rounded-2xl border border-slate-900 bg-slate-950/60 overflow-hidden shadow-2xl"
+    }>
+      {isFullscreen && (
+        <div className="flex items-center justify-between px-6 py-4 border-b border-slate-900 bg-slate-950 shrink-0">
+          <h2 className="text-sm font-bold text-slate-200 flex items-center gap-2 select-none">
+            <span className="text-emerald-400 text-lg">🏆</span>
+            <span>{isVi ? "Sơ đồ nhánh đấu Knockout" : "Knockout Bracket"}</span>
+          </h2>
+          <button
+            type="button"
+            onClick={() => setIsFullscreen(false)}
+            className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-slate-800 bg-slate-900/60 hover:bg-slate-850 hover:text-white text-xs font-semibold text-slate-300 transition-all focus:outline-none"
+          >
+            <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+            </svg>
+            <span>{isVi ? "Thoát" : "Exit"}</span>
+          </button>
+        </div>
+      )}
 
       {/* Zoom Controls */}
       <div className="absolute bottom-4 right-4 z-10 flex items-center gap-1 bg-slate-900/90 border border-slate-800 p-1 rounded-full text-xs font-semibold backdrop-blur shadow-lg">
@@ -465,6 +507,23 @@ export default function KnockoutBracket({
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M12 4v16m8-8H4" />
           </svg>
         </button>
+        <div className="w-[1px] h-4 bg-slate-800 mx-0.5" />
+        <button
+          type="button"
+          onClick={() => setIsFullscreen(!isFullscreen)}
+          className="w-8 h-8 rounded-full flex items-center justify-center hover:bg-slate-800 text-slate-300 transition-colors focus:outline-none"
+          title={isFullscreen ? (isVi ? "Thoát toàn màn hình" : "Exit fullscreen") : (isVi ? "Toàn màn hình" : "Full screen")}
+        >
+          {isFullscreen ? (
+            <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 14h6v6m0-6L4 20m16-6h-6v6m0-6l6 6M4 10h6V4m0 6L4 4m16 6h-6V4m0 6l6-6" />
+            </svg>
+          ) : (
+            <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 8V4h4M4 4l5 5m11-5h-4v4m4-4l-5 5M4 16v4h4m-4 0l5-5m11 5h-4v-4m4 4l-5-5" />
+            </svg>
+          )}
+        </button>
       </div>
 
       {/* Bracket Canvas Area */}
@@ -474,9 +533,9 @@ export default function KnockoutBracket({
         onMouseLeave={handleMouseLeave}
         onMouseUp={handleMouseUp}
         onMouseMove={handleMouseMove}
-        className={`w-full overflow-auto select-none py-10 px-8 h-[calc(100vh-160px)] min-h-[600px] scrollbar-thin scrollbar-track-slate-950 scrollbar-thumb-slate-800 ${
-          isDragging ? "cursor-grabbing" : "cursor-grab"
-        }`}
+        className={`w-full overflow-auto select-none py-10 px-8 scrollbar-thin scrollbar-track-slate-950 scrollbar-thumb-slate-800 ${
+          isFullscreen ? "flex-1 h-full" : "h-[calc(100vh-160px)] min-h-[600px]"
+        } ${isDragging ? "cursor-grabbing" : "cursor-grab"}`}
       >
         {/* Dynamic spacer wrapper corresponding to zoom scale */}
         <div 
