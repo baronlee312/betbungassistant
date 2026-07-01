@@ -1,9 +1,7 @@
 import { notFound } from "next/navigation";
-import LanguageSwitcher from "@/components/language-switcher";
 import ScheduleSections from "@/components/schedule-sections";
-import Link from "next/link";
-import FocusMatchButton from "@/components/focus-match-button";
 import KnockoutBracket from "@/components/knockout-bracket";
+import Header from "@/components/header";
 import { getMatchKickoffSortValue } from "@/lib/format";
 import {
   getDictionary,
@@ -70,68 +68,13 @@ export default async function Home({ params, searchParams }: HomeProps) {
   return (
     <main className="min-h-dvh bg-slate-950 text-slate-100 flex flex-col">
       
-      {/* Rigidly Sticky Header */}
-      <header className="sticky top-0 z-50 bg-slate-950/85 backdrop-blur-md border-b border-slate-900/80 transition-all duration-200 px-4 py-3 sm:px-6 lg:px-8">
-        <div className="mx-auto max-w-7xl flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
-          
-          {/* Left: Title & Stage Tabs */}
-          <div className="flex flex-wrap items-center gap-3 sm:gap-5">
-            <div>
-              <p className="text-[10px] font-semibold uppercase text-emerald-300 tracking-wider">
-                {dictionary.home.eyebrow} {WORLD_CUP_SEASON}
-              </p>
-              <h1 className="text-lg font-bold text-slate-50 tracking-tight leading-none mt-0.5">
-                {dictionary.home.title}
-              </h1>
-            </div>
-            
-            <div className="h-5 w-px bg-slate-800 hidden sm:block" />
-
-            {/* Segmented Control Tabs */}
-            <div className="flex gap-0.5 p-0.5 bg-slate-900/65 rounded-full border border-slate-850">
-              <Link
-                href={`/${locale}?stage=group`}
-                className={`px-3 py-1 text-xs font-semibold rounded-full transition-all duration-150 ${
-                  !isKnockout
-                    ? "bg-emerald-400 text-slate-950 shadow-sm"
-                    : "text-slate-400 hover:text-slate-200"
-                }`}
-              >
-                {dictionary.home.groupStage}
-              </Link>
-              <Link
-                href={`/${locale}?stage=knockout`}
-                className={`px-3 py-1 text-xs font-semibold rounded-full transition-all duration-150 ${
-                  isKnockout
-                    ? "bg-emerald-400 text-slate-950 shadow-sm"
-                    : "text-slate-400 hover:text-slate-200"
-                }`}
-              >
-                {dictionary.home.knockoutStage}
-              </Link>
-            </div>
-          </div>
-
-          {/* Right: Actions */}
-          <div className="flex flex-wrap items-center gap-3 sm:gap-4">
-            {nextMatch && (
-              <FocusMatchButton matchId={nextMatch.id} locale={locale} />
-            )}
-            <Link
-              href={getLocalizedPath(locale, "/fifa-rankings")}
-              className="text-xs sm:text-sm font-semibold text-emerald-400 hover:text-emerald-300 transition-colors"
-            >
-              {dictionary.fifaRankings.title} →
-            </Link>
-            <LanguageSwitcher
-              currentPath="/"
-              dictionary={dictionary.common}
-              locale={locale}
-            />
-          </div>
-
-        </div>
-      </header>
+      {/* Responsive Header Navigation */}
+      <Header
+        locale={locale}
+        dictionary={dictionary}
+        nextMatchId={nextMatch?.id}
+        isKnockout={isKnockout}
+      />
 
       {/* Main Content Wrapper */}
       {isKnockout ? (
